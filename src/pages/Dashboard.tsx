@@ -10,6 +10,7 @@ import ProgressCard from '@/components/dashboard/ProgressCard';
 import ProjectRoadmap from '@/components/dashboard/ProjectRoadmap';
 import ConsultantCard from '@/components/dashboard/ConsultantCard';
 import QuickDownloads from '@/components/dashboard/QuickDownloads';
+import TaxSimulator from '@/components/dashboard/TaxSimulator';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -120,6 +121,11 @@ const Dashboard = () => {
             />
             <QuickDownloads documents={projectData.documents} />
           </div>
+        </div>
+
+        {/* Tax Simulator Section */}
+        <div className="mt-12 pt-8 border-t border-border">
+          <TaxSimulator />
         </div>
       </main>
 
