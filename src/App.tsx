@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Main application component with auth provider
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
