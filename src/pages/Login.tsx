@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertTriangle, MessageCircle, ArrowLeft, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/Logo';
 
 const Login = () => {
@@ -12,17 +14,33 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const whatsappLink = 'https://wa.me/5500000000000?text=Olá!%20Gostaria%20de%20solicitar%20um%20Estudo%20de%20Viabilidade%20para%20minha%20empresa.';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulated login - will be replaced with Supabase auth
-    setTimeout(() => {
-      setIsLoading(false);
-      alert('Funcionalidade de login será implementada com Supabase.');
-    }, 1000);
+    
+    const success = await login(email, password);
+    
+    if (success) {
+      toast({
+        title: 'Login realizado com sucesso!',
+        description: 'Bem-vindo à área do cliente.',
+      });
+      navigate('/dashboard');
+    } else {
+      toast({
+        title: 'Credenciais inválidas',
+        description: 'Verifique seu e-mail e senha.',
+        variant: 'destructive',
+      });
+    }
+    
+    setIsLoading(false);
   };
 
   return (
