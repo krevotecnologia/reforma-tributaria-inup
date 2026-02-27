@@ -58,10 +58,10 @@ const ProjectCalendar = () => {
             mode="single"
             month={month}
             onMonthChange={setMonth}
-            className="p-0 pointer-events-auto"
+            className="p-0 pointer-events-auto w-full"
             classNames={{
-              months: "flex flex-col",
-              month: "space-y-3",
+              months: "flex flex-col w-full",
+              month: "space-y-3 w-full",
               caption: "flex justify-center pt-1 relative items-center",
               caption_label: "text-sm font-semibold text-foreground",
               nav: "space-x-1 flex items-center",
@@ -71,11 +71,11 @@ const ProjectCalendar = () => {
               nav_button_previous: "absolute left-1",
               nav_button_next: "absolute right-1",
               table: "w-full border-collapse",
-              head_row: "flex",
-              head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.75rem] text-center",
+              head_row: "flex w-full",
+              head_cell: "text-muted-foreground rounded-md flex-1 font-normal text-[0.75rem] text-center",
               row: "flex w-full mt-1",
-              cell: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-              day: "h-9 w-9 p-0 font-normal rounded-md hover:bg-muted transition-colors text-sm",
+              cell: "flex-1 aspect-square text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+              day: "w-full h-full p-0 font-normal rounded-md hover:bg-muted transition-colors text-sm",
               day_selected: "bg-primary text-primary-foreground hover:bg-primary",
               day_today: "font-bold text-primary",
               day_outside: "text-muted-foreground opacity-40",
@@ -92,7 +92,7 @@ const ProjectCalendar = () => {
                 return (
                   <div
                     className={cn(
-                      "relative h-9 w-9 flex items-center justify-center rounded-md text-sm font-normal transition-colors",
+                      "relative w-full aspect-square flex items-center justify-center rounded-md text-sm font-normal transition-colors",
                       outside && "opacity-30 text-muted-foreground",
                       !outside && "text-foreground hover:bg-muted cursor-default",
                       isToday && "font-bold ring-1 ring-primary",
