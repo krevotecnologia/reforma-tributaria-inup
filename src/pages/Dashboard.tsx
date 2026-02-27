@@ -10,6 +10,7 @@ import ProgressCard from '@/components/dashboard/ProgressCard';
 import ProjectRoadmap from '@/components/dashboard/ProjectRoadmap';
 import ConsultantCard from '@/components/dashboard/ConsultantCard';
 import QuickDownloads from '@/components/dashboard/QuickDownloads';
+import ProjectCalendar from '@/components/dashboard/ProjectCalendar';
 import TaxSimulator from '@/components/dashboard/TaxSimulator';
 
 const Dashboard = () => {
@@ -119,6 +120,7 @@ const Dashboard = () => {
               phone={projectData.consultant.phone}
               photoUrl={projectData.consultant.photoUrl}
             />
+            <ProjectCalendar />
             <QuickDownloads documents={projectData.documents} />
           </div>
         </div>
