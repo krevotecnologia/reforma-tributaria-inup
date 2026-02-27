@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SimulatorInputs from './SimulatorInputs';
 import SimulatorResults from './SimulatorResults';
+import SimulatorProjectionChart from './SimulatorProjectionChart';
 
 export interface SimulatorData {
   // Base Data
@@ -179,6 +180,7 @@ Gostaria de receber uma análise técnica detalhada em PDF.`;
         </div>
       </div>
 
+      {/* Top row: Inputs + Summary Results */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Left Column - Inputs */}
         <Card className="bg-card border-none shadow-lg">
@@ -212,7 +214,7 @@ Gostaria de receber uma análise técnica detalhada em PDF.`;
           </CardContent>
         </Card>
 
-        {/* Right Column - Results */}
+        {/* Right Column - Summary Results + CTAs */}
         <div className="space-y-6">
           <SimulatorResults 
             results={results} 
@@ -278,6 +280,9 @@ Gostaria de receber uma análise técnica detalhada em PDF.`;
           )}
         </div>
       </div>
+
+      {/* Bottom row: Full-width Projection Chart */}
+      <SimulatorProjectionChart data={data} />
     </motion.div>
   );
 };
