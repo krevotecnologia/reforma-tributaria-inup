@@ -9,10 +9,14 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminClients from "./pages/admin/AdminClients";
+import AdminClientDetail from "./pages/admin/AdminClientDetail";
+import AdminProjectDetail from "./pages/admin/AdminProjectDetail";
 
 const queryClient = new QueryClient();
 
-// Main application component with auth provider
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -23,15 +27,47 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminLayout><AdminDashboard /></AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/clientes"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminLayout><AdminClients /></AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/clientes/:clientId"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminLayout><AdminClientDetail /></AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/clientes/:clientId/projetos/:projectId"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminLayout><AdminProjectDetail /></AdminLayout>
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

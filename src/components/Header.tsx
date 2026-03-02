@@ -46,8 +46,8 @@ const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="outline" asChild>
-              <Link to="/login">Acesso Cliente</Link>
+          <Button variant="outline" asChild>
+              <Link to="/login">Acesso Área Restrita</Link>
             </Button>
           </div>
 
@@ -87,10 +87,10 @@ const Header = () => {
               ))}
               <div className="pt-4 border-t border-border">
                 <Button variant="outline" className="w-full" asChild>
-                  <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                    Acesso Cliente
-                  </Link>
-                </Button>
+                   <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                     Acesso Área Restrita
+                   </Link>
+                 </Button>
               </div>
             </div>
           </motion.div>

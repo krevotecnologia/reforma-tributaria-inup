@@ -1,0 +1,175 @@
+import { useEffect, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, Building2, Mail, Phone, Hash, FolderOpen, Trash2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import type { Client, Project } from '@/types/database';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import NewProjectDialog from '@/components/admin/NewProjectDialog';
+
+const statusConfig = {
+  em_andamento: { label: 'Em Andamento', variant: 'default' as const },
+  concluido: { label: 'Concluído', variant: 'secondary' as const },
+  pausado: { label: 'Pausado', variant: 'outline' as const },
+};
+
+const regimeLabel: Record<string, string> = {
+  lucro_presumido: 'Lucro Presumido',
+  lucro_real: 'Lucro Real',
+  simples_nacional: 'Simples Nacional',
+};
+
+const AdminClientDetail = () => {
+  const { clientId } = useParams();
+  const navigate = useNavigate();
+  const [client, setClient] = useState<Client | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+
+  const fetchData = async () => {
+    if (!clientId) return;
+    const [{ data: c }, { data: p }] = await Promise.all([
+      supabase.from('clients').select('*').eq('id', clientId).single(),
+      supabase.from('projects').select('*').eq('client_id', clientId).order('created_at', { ascending: false }),
+    ]);
+    setClient(c);
+    setProjects(p || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, [clientId]);
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+    </div>
+  );
+
+  if (!client) return (
+    <div className="text-center py-16">
+      <p className="text-muted-foreground">Cliente não encontrado.</p>
+      <Button variant="ghost" onClick={() => navigate('/admin/clientes')} className="mt-4">Voltar</Button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" asChild>
+          <Link to="/admin/clientes"><ArrowLeft className="h-4 w-4" /></Link>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-extrabold text-foreground">{client.full_name}</h1>
+          <p className="text-muted-foreground text-sm">{client.email}</p>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Client Info */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Informações do Cliente</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {client.company_name && (
+              <div className="flex items-center gap-2 text-sm">
+                <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span>{client.company_name}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-sm">
+              <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="truncate">{client.email}</span>
+            </div>
+            {client.phone && (
+              <div className="flex items-center gap-2 text-sm">
+                <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span>{client.phone}</span>
+              </div>
+            )}
+            {client.cnpj && (
+              <div className="flex items-center gap-2 text-sm">
+                <Hash className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span>{client.cnpj}</span>
+              </div>
+            )}
+            {client.regime && (
+              <div className="pt-2 border-t border-border">
+                <span className="text-xs text-muted-foreground">Regime Tributário</span>
+                <div className="mt-1 text-sm font-medium">{regimeLabel[client.regime] || client.regime}</div>
+              </div>
+            )}
+            <div className="pt-2 border-t border-border">
+              <span className="text-xs text-muted-foreground">Acesso ao Portal</span>
+              <div className={`mt-1 text-sm font-medium ${client.user_id ? 'text-green-600' : 'text-yellow-600'}`}>
+                {client.user_id ? '✓ Conta Ativa' : '⏳ Convite Pendente'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Projects */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-foreground">
+              Projetos ({projects.length})
+            </h2>
+            <Button onClick={() => setProjectDialogOpen(true)} className="btn-primary-inup gap-2" size="sm">
+              <Plus className="h-4 w-4" />
+              Novo Projeto
+            </Button>
+          </div>
+
+          {projects.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <FolderOpen className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                <h3 className="font-medium text-foreground mb-1">Nenhum projeto cadastrado</h3>
+                <p className="text-sm text-muted-foreground mb-4">Crie o primeiro projeto para este cliente</p>
+                <Button onClick={() => setProjectDialogOpen(true)} className="btn-primary-inup gap-2" size="sm">
+                  <Plus className="h-4 w-4" />
+                  Criar Projeto
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {projects.map(project => {
+                const cfg = statusConfig[project.status] || statusConfig.em_andamento;
+                return (
+                  <Link key={project.id} to={`/admin/clientes/${clientId}/projetos/${project.id}`}>
+                    <Card className="hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer">
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-foreground truncate">{project.title}</h3>
+                          {project.description && (
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{project.description}</p>
+                          )}
+                          {project.annual_revenue && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Faturamento: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(project.annual_revenue)}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant={cfg.variant}>{cfg.label}</Badge>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <NewProjectDialog
+        open={projectDialogOpen}
+        onOpenChange={setProjectDialogOpen}
+        clientId={clientId!}
+        onSuccess={fetchData}
+      />
+    </div>
+  );
+};
+
+export default AdminClientDetail;
