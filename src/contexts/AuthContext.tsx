@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
 type AppRole = 'admin' | 'client';
@@ -17,7 +17,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; role: AppRole | null }>;
   logout: () => Promise<void>;
 }
 
@@ -28,23 +28,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadUserRole = async (supabaseUser: User): Promise<AppRole | null> => {
-    const { data } = await supabase.from('user_roles').select('role').eq('user_id', supabaseUser.id).single();
-    return data?.role ?? null;
-  };
-
   const buildUser = async (supabaseUser: User): Promise<AuthUser> => {
-    const role = await loadUserRole(supabaseUser);
-    const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', supabaseUser.id).single();
+    // Fetch role and profile in parallel
+    const [roleResult, profileResult] = await Promise.all([
+      supabase.from('user_roles').select('role').eq('user_id', supabaseUser.id).single(),
+      supabase.from('profiles').select('full_name').eq('id', supabaseUser.id).single(),
+    ]);
     return {
       id: supabaseUser.id,
       email: supabaseUser.email!,
-      name: profile?.full_name ?? supabaseUser.email!,
-      role,
+      name: profileResult.data?.full_name ?? supabaseUser.email!,
+      role: roleResult.data?.role ?? null,
     };
   };
 
   useEffect(() => {
+    let initialized = false;
+
+    // Set up listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       if (session?.user) {
@@ -53,24 +54,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setUser(null);
       }
-      setIsLoading(false);
+      if (!initialized) {
+        initialized = true;
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
+      }
     });
 
+    // Then check existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        const authUser = await buildUser(session.user);
-        setUser(authUser);
+      if (!session) {
+        setIsLoading(false);
       }
-      setIsLoading(false);
+      // If session exists, onAuthStateChange will fire and handle it
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return !error;
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; role: AppRole | null }> => {
+    const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) return { success: false, role: null };
+    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', data.user.id).single();
+    return { success: true, role: roleData?.role ?? null };
   }, []);
 
   const logout = useCallback(async () => {
