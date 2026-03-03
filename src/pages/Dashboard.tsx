@@ -133,8 +133,8 @@ const Dashboard = () => {
   const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const handleLogout = async () => {
-    await logout();
     navigate('/login');
+    await logout();
   };
 
   return (
