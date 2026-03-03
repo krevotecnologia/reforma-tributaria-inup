@@ -1,6 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Upload, CheckCircle, Clock, AlertCircle, Trash2, GripVertical, File, Download, CalendarDays } from 'lucide-react';
+import {
+  ArrowLeft, Plus, Upload, CheckCircle, Clock, AlertCircle,
+  Trash2, File, Download, CalendarDays, ChevronDown, ChevronRight,
+  ListTodo, Pencil, X, Save
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -12,16 +16,96 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
+interface ProjectTask {
+  id: string;
+  step_id: string;
+  project_id: string;
+  title: string;
+  status: string;
+  due_date: string | null;
+  action: string | null;
+  result: string | null;
+  exclusions: string | null;
+  methodology: string | null;
+  order_index: number;
+  created_at: string;
+}
+
 const stepStatusConfig = {
   pendente: { label: 'Pendente', icon: Clock, color: 'text-muted-foreground', bg: 'bg-muted' },
   em_andamento: { label: 'Em Andamento', icon: AlertCircle, color: 'text-blue-600', bg: 'bg-blue-500/10' },
   concluido: { label: 'Concluído', icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-500/10' },
 };
 
+const taskStatusOptions = ['Agendada', 'Em execução', 'Concluída'];
+
 const eventTypeConfig = {
   entrega: { label: 'Entrega', color: 'bg-primary/10 text-primary' },
   reuniao: { label: 'Reunião', color: 'bg-blue-500/10 text-blue-600' },
   prazo: { label: 'Prazo', color: 'bg-destructive/10 text-destructive' },
+};
+
+const emptyTask = () => ({
+  title: '', status: 'Agendada', due_date: '',
+  action: '', result: '', exclusions: '', methodology: '',
+});
+
+const TaskForm = ({
+  initial, onSave, onCancel, saving,
+}: {
+  initial: ReturnType<typeof emptyTask>;
+  onSave: (d: ReturnType<typeof emptyTask>) => void;
+  onCancel: () => void;
+  saving: boolean;
+}) => {
+  const [data, setData] = useState(initial);
+  const set = (k: keyof typeof data, v: string) => setData(p => ({ ...p, [k]: v }));
+
+  return (
+    <div className="space-y-3 p-4 rounded-xl border border-border bg-muted/20">
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="sm:col-span-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Título da Atividade *</label>
+          <Input value={data.title} onChange={e => set('title', e.target.value)} placeholder="Ex: Levantamento de NCMs" className="mt-1 h-8 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</label>
+          <Select value={data.status} onValueChange={v => set('status', v)}>
+            <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {taskStatusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Data de Entrega</label>
+          <Input type="date" value={data.due_date} onChange={e => set('due_date', e.target.value)} className="mt-1 h-8 text-sm" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ação</label>
+          <Textarea value={data.action} onChange={e => set('action', e.target.value)} placeholder="Descreva a ação a ser realizada..." rows={2} className="mt-1 text-sm resize-none" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Resultado Esperado</label>
+          <Textarea value={data.result} onChange={e => set('result', e.target.value)} placeholder="O que será entregue ao final desta atividade..." rows={2} className="mt-1 text-sm resize-none" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">O que NÃO será feito</label>
+          <Textarea value={data.exclusions} onChange={e => set('exclusions', e.target.value)} placeholder="Limitações e exclusões do escopo..." rows={2} className="mt-1 text-sm resize-none" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Metodologia</label>
+          <Textarea value={data.methodology} onChange={e => set('methodology', e.target.value)} placeholder="Abordagem e metodologia aplicada..." rows={2} className="mt-1 text-sm resize-none" />
+        </div>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={saving}><X className="h-3.5 w-3.5 mr-1" />Cancelar</Button>
+        <Button type="button" size="sm" className="btn-primary-inup gap-1" onClick={() => onSave(data)} disabled={saving || !data.title.trim()}>
+          <Save className="h-3.5 w-3.5" />{saving ? 'Salvando...' : 'Salvar Atividade'}
+        </Button>
+      </div>
+    </div>
+  );
 };
 
 const AdminProjectDetail = () => {
@@ -32,15 +116,22 @@ const AdminProjectDetail = () => {
 
   const [project, setProject] = useState<Project | null>(null);
   const [steps, setSteps] = useState<ProjectStep[]>([]);
+  const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [events, setEvents] = useState<ProjectEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
 
   // New step form
   const [newStepTitle, setNewStepTitle] = useState('');
   const [newStepDesc, setNewStepDesc] = useState('');
   const [newStepDue, setNewStepDue] = useState('');
+
+  // Task forms
+  const [addingTaskForStep, setAddingTaskForStep] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<ProjectTask | null>(null);
+  const [savingTask, setSavingTask] = useState(false);
 
   // New event form
   const [newEventTitle, setNewEventTitle] = useState('');
@@ -49,20 +140,30 @@ const AdminProjectDetail = () => {
 
   const fetchData = async () => {
     if (!projectId) return;
-    const [{ data: p }, { data: s }, { data: f }, { data: e }] = await Promise.all([
+    const [{ data: p }, { data: s }, { data: t }, { data: f }, { data: e }] = await Promise.all([
       supabase.from('projects').select('*').eq('id', projectId).single(),
       supabase.from('project_steps').select('*').eq('project_id', projectId).order('order_index'),
+      supabase.from('project_tasks').select('*').eq('project_id', projectId).order('order_index'),
       supabase.from('project_files').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
       supabase.from('project_events').select('*').eq('project_id', projectId).order('event_date'),
     ]);
     setProject(p);
     setSteps(s || []);
+    setTasks((t as ProjectTask[]) || []);
     setFiles(f || []);
     setEvents(e || []);
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, [projectId]);
+
+  const toggleStep = (id: string) => {
+    setExpandedSteps(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const addStep = async () => {
     if (!newStepTitle.trim()) return;
@@ -79,7 +180,7 @@ const AdminProjectDetail = () => {
     }
   };
 
-  const updateStepStatus = async (stepId: string, status: ProjectStep['status']) => {
+  const updateStepStatus = async (stepId: string, status: string) => {
     await supabase.from('project_steps').update({
       status,
       completed_at: status === 'concluido' ? new Date().toISOString() : null,
@@ -89,6 +190,47 @@ const AdminProjectDetail = () => {
 
   const deleteStep = async (stepId: string) => {
     await supabase.from('project_steps').delete().eq('id', stepId);
+    fetchData();
+  };
+
+  const saveTask = async (stepId: string, data: ReturnType<typeof emptyTask>) => {
+    setSavingTask(true);
+    const stepTasks = tasks.filter(t => t.step_id === stepId);
+    const { error } = await supabase.from('project_tasks').insert({
+      step_id: stepId,
+      project_id: projectId!,
+      title: data.title,
+      status: data.status,
+      due_date: data.due_date || null,
+      action: data.action || null,
+      result: data.result || null,
+      exclusions: data.exclusions || null,
+      methodology: data.methodology || null,
+      order_index: stepTasks.length,
+    });
+    if (error) toast({ title: 'Erro ao salvar atividade', description: error.message, variant: 'destructive' });
+    else { setAddingTaskForStep(null); fetchData(); }
+    setSavingTask(false);
+  };
+
+  const updateTask = async (taskId: string, data: ReturnType<typeof emptyTask>) => {
+    setSavingTask(true);
+    const { error } = await supabase.from('project_tasks').update({
+      title: data.title,
+      status: data.status,
+      due_date: data.due_date || null,
+      action: data.action || null,
+      result: data.result || null,
+      exclusions: data.exclusions || null,
+      methodology: data.methodology || null,
+    }).eq('id', taskId);
+    if (error) toast({ title: 'Erro ao atualizar atividade', description: error.message, variant: 'destructive' });
+    else { setEditingTask(null); fetchData(); }
+    setSavingTask(false);
+  };
+
+  const deleteTask = async (taskId: string) => {
+    await supabase.from('project_tasks').delete().eq('id', taskId);
     fetchData();
   };
 
@@ -152,9 +294,9 @@ const AdminProjectDetail = () => {
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   if (!project) return <div className="text-center py-16 text-muted-foreground">Projeto não encontrado.</div>;
 
-  const totalSteps = steps.length;
-  const doneSteps = steps.filter(s => s.status === 'concluido').length;
-  const progress = totalSteps > 0 ? Math.round((doneSteps / totalSteps) * 100) : 0;
+  const totalTasks = tasks.length;
+  const doneTasks = tasks.filter(t => t.status === 'Concluída').length;
+  const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -172,7 +314,7 @@ const AdminProjectDetail = () => {
       </div>
 
       {/* Progress */}
-      {totalSteps > 0 && (
+      {totalTasks > 0 && (
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="flex-1">
@@ -185,38 +327,45 @@ const AdminProjectDetail = () => {
               </div>
             </div>
             <div className="text-right flex-shrink-0">
-              <div className="text-lg font-bold text-foreground">{doneSteps}/{totalSteps}</div>
-              <div className="text-xs text-muted-foreground">etapas</div>
+              <div className="text-lg font-bold text-foreground">{doneTasks}/{totalTasks}</div>
+              <div className="text-xs text-muted-foreground">atividades</div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Etapas */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-primary" />
-              Etapas do Projeto
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {steps.map(step => {
-              const cfg = stepStatusConfig[step.status];
-              const Icon = cfg.icon;
-              return (
-                <div key={step.id} className="flex items-start gap-3 p-3 rounded-lg border border-border">
+      {/* Steps & Tasks */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ListTodo className="h-4 w-4 text-primary" />
+            Etapas e Atividades do Projeto
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {steps.map((step, idx) => {
+            const cfg = stepStatusConfig[step.status as keyof typeof stepStatusConfig] || stepStatusConfig.pendente;
+            const Icon = cfg.icon;
+            const stepTasks = tasks.filter(t => t.step_id === step.id);
+            const isExpanded = expandedSteps.has(step.id);
+
+            return (
+              <div key={step.id} className="border border-border rounded-xl overflow-hidden">
+                {/* Step Header */}
+                <div
+                  className="flex items-center gap-3 p-4 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => toggleStep(step.id)}
+                >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
                     <Icon className={`h-4 w-4 ${cfg.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm text-foreground">{step.title}</div>
-                    {step.description && <div className="text-xs text-muted-foreground mt-0.5">{step.description}</div>}
-                    {step.due_date && <div className="text-xs text-muted-foreground mt-1">📅 {new Date(step.due_date).toLocaleDateString('pt-BR')}</div>}
+                    <div className="font-semibold text-sm text-foreground">{step.title}</div>
+                    {step.description && <div className="text-xs text-muted-foreground">{step.description}</div>}
+                    <div className="text-xs text-muted-foreground mt-0.5">{stepTasks.length} atividade{stepTasks.length !== 1 ? 's' : ''}</div>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Select value={step.status} onValueChange={(v) => updateStepStatus(step.id, v as any)}>
+                  <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                    <Select value={step.status} onValueChange={(v) => updateStepStatus(step.id, v)}>
                       <SelectTrigger className="h-7 w-28 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pendente">Pendente</SelectItem>
@@ -228,25 +377,94 @@ const AdminProjectDetail = () => {
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+                  {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
                 </div>
-              );
-            })}
 
-            {/* Add Step */}
-            <div className="pt-2 border-t border-border space-y-2">
-              <Input placeholder="Título da nova etapa" value={newStepTitle} onChange={e => setNewStepTitle(e.target.value)} className="h-8 text-sm" />
-              <Textarea placeholder="Descrição (opcional)" value={newStepDesc} onChange={e => setNewStepDesc(e.target.value)} rows={2} className="text-sm resize-none" />
-              <div className="flex gap-2">
-                <Input type="date" value={newStepDue} onChange={e => setNewStepDue(e.target.value)} className="h-8 text-sm flex-1" />
-                <Button onClick={addStep} size="sm" className="btn-primary-inup gap-1 h-8" disabled={!newStepTitle.trim()}>
-                  <Plus className="h-3.5 w-3.5" />
-                  Adicionar
-                </Button>
+                {/* Tasks */}
+                {isExpanded && (
+                  <div className="p-4 space-y-3 border-t border-border">
+                    {stepTasks.map(task => (
+                      <div key={task.id}>
+                        {editingTask?.id === task.id ? (
+                          <TaskForm
+                            initial={{
+                              title: task.title, status: task.status,
+                              due_date: task.due_date || '',
+                              action: task.action || '', result: task.result || '',
+                              exclusions: task.exclusions || '', methodology: task.methodology || '',
+                            }}
+                            onSave={d => updateTask(task.id, d)}
+                            onCancel={() => setEditingTask(null)}
+                            saving={savingTask}
+                          />
+                        ) : (
+                          <div className="p-3 rounded-lg border border-border bg-card">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm font-medium text-foreground">{task.title}</span>
+                                {task.due_date && <span className="ml-2 text-xs text-muted-foreground">📅 {new Date(task.due_date).toLocaleDateString('pt-BR')}</span>}
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  task.status === 'Concluída' ? 'bg-primary/10 text-primary' :
+                                  task.status === 'Em execução' ? 'bg-blue-500/10 text-blue-600' :
+                                  'bg-muted text-muted-foreground'
+                                }`}>{task.status}</span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => setEditingTask(task)}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => deleteTask(task.id)}>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            {(task.action || task.result || task.exclusions || task.methodology) && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                {task.action && <div className="pl-2 border-l-2 border-primary/50"><p className="text-xs font-semibold text-muted-foreground uppercase">Ação</p><p className="text-xs text-foreground">{task.action}</p></div>}
+                                {task.result && <div className="pl-2 border-l-2 border-primary/50"><p className="text-xs font-semibold text-muted-foreground uppercase">Resultado</p><p className="text-xs text-foreground">{task.result}</p></div>}
+                                {task.exclusions && <div className="pl-2 border-l-2 border-destructive/50"><p className="text-xs font-semibold text-muted-foreground uppercase">Não inclui</p><p className="text-xs text-foreground">{task.exclusions}</p></div>}
+                                {task.methodology && <div className="pl-2 border-l-2 border-secondary/50"><p className="text-xs font-semibold text-muted-foreground uppercase">Metodologia</p><p className="text-xs text-foreground">{task.methodology}</p></div>}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {addingTaskForStep === step.id ? (
+                      <TaskForm
+                        initial={emptyTask()}
+                        onSave={d => saveTask(step.id, d)}
+                        onCancel={() => setAddingTaskForStep(null)}
+                        saving={savingTask}
+                      />
+                    ) : (
+                      <Button variant="outline" size="sm" className="w-full gap-2 border-dashed h-8 text-xs" onClick={() => setAddingTaskForStep(step.id)}>
+                        <Plus className="h-3.5 w-3.5" />
+                        Adicionar Atividade
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            );
+          })}
 
+          {/* Add Step */}
+          <div className="pt-2 border-t border-border space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nova Etapa</p>
+            <Input placeholder="Título da nova etapa" value={newStepTitle} onChange={e => setNewStepTitle(e.target.value)} className="h-8 text-sm" />
+            <Textarea placeholder="Descrição da etapa (opcional)" value={newStepDesc} onChange={e => setNewStepDesc(e.target.value)} rows={2} className="text-sm resize-none" />
+            <Button onClick={addStep} size="sm" className="btn-primary-inup gap-1 h-8" disabled={!newStepTitle.trim()}>
+              <Plus className="h-3.5 w-3.5" />
+              Adicionar Etapa
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Events + Files */}
+      <div className="grid lg:grid-cols-2 gap-6">
         {/* Calendar Events */}
         <Card>
           <CardHeader>
@@ -257,7 +475,7 @@ const AdminProjectDetail = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             {events.map(ev => {
-              const cfg = eventTypeConfig[ev.event_type] || eventTypeConfig.entrega;
+              const cfg = eventTypeConfig[ev.event_type as keyof typeof eventTypeConfig] || eventTypeConfig.entrega;
               return (
                 <div key={ev.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
                   <div className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${cfg.color}`}>{cfg.label}</div>
@@ -272,7 +490,6 @@ const AdminProjectDetail = () => {
                 </div>
               );
             })}
-
             <div className="pt-2 border-t border-border space-y-2">
               <Input placeholder="Título do evento" value={newEventTitle} onChange={e => setNewEventTitle(e.target.value)} className="h-8 text-sm" />
               <div className="flex gap-2">
@@ -293,50 +510,50 @@ const AdminProjectDetail = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Files */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base flex items-center gap-2">
-            <File className="h-4 w-4 text-primary" />
-            Arquivos do Projeto
-          </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} className="gap-2">
-            {uploadingFile ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-primary" /> : <Upload className="h-3.5 w-3.5" />}
-            {uploadingFile ? 'Enviando...' : 'Upload'}
-          </Button>
-          <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} />
-        </CardHeader>
-        <CardContent>
-          {files.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Upload className="h-8 w-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Nenhum arquivo enviado ainda</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {files.map(file => (
-                <div key={file.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                  <File className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground truncate">{file.file_name}</div>
-                    <div className="text-xs text-muted-foreground">{file.file_size ? formatBytes(file.file_size) : ''}</div>
+        {/* Files */}
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base flex items-center gap-2">
+              <File className="h-4 w-4 text-primary" />
+              Arquivos do Projeto
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} className="gap-2">
+              {uploadingFile ? <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-primary" /> : <Upload className="h-3.5 w-3.5" />}
+              {uploadingFile ? 'Enviando...' : 'Upload'}
+            </Button>
+            <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} />
+          </CardHeader>
+          <CardContent>
+            {files.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Upload className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Nenhum arquivo enviado ainda</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {files.map(file => (
+                  <div key={file.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
+                    <File className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-foreground truncate">{file.file_name}</div>
+                      <div className="text-xs text-muted-foreground">{file.file_size ? formatBytes(file.file_size) : ''}</div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadFile(file.file_path, file.file_name)}>
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteFile(file.id, file.file_path)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadFile(file.file_path, file.file_name)}>
-                      <Download className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteFile(file.id, file.file_path)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

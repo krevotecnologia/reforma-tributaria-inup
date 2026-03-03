@@ -47,6 +47,21 @@ export interface ProjectEvent {
   created_at: string;
 }
 
+export interface ProjectTask {
+  id: string;
+  step_id: string;
+  project_id: string;
+  title: string;
+  status: string;
+  due_date: string | null;
+  action: string | null;
+  result: string | null;
+  exclusions: string | null;
+  methodology: string | null;
+  order_index: number;
+  created_at: string;
+}
+
 export interface ProjectFile {
   id: string;
   project_id: string;
