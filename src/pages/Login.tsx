@@ -29,13 +29,15 @@ const Login = () => {
 
     const { success, role } = await login(email, password);
 
-    if (success) {
-      toast({ title: 'Login realizado com sucesso!', description: 'Bem-vindo à área restrita.' });
-      navigate(role === 'admin' ? '/admin' : '/dashboard');
-    } else {
+    if (!success) {
       toast({ title: 'Credenciais inválidas', description: 'Verifique seu e-mail e senha.', variant: 'destructive' });
       setIsLoading(false);
+      return;
     }
+
+    toast({ title: 'Login realizado com sucesso!', description: 'Bem-vindo à área restrita.' });
+    // Navigate based on role returned directly from login (before auth state settles)
+    navigate(role === 'admin' ? '/admin' : '/dashboard', { replace: true });
   };
 
   const handleModeSelect = (m: 'client' | 'admin') => {
