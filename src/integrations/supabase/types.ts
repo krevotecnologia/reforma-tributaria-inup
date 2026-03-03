@@ -209,6 +209,69 @@ export type Database = {
           },
         ]
       }
+      project_tasks: {
+        Row: {
+          action: string | null
+          created_at: string
+          due_date: string | null
+          exclusions: string | null
+          id: string
+          methodology: string | null
+          order_index: number
+          project_id: string
+          result: string | null
+          status: string
+          step_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          due_date?: string | null
+          exclusions?: string | null
+          id?: string
+          methodology?: string | null
+          order_index?: number
+          project_id: string
+          result?: string | null
+          status?: string
+          step_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          due_date?: string | null
+          exclusions?: string | null
+          id?: string
+          methodology?: string | null
+          order_index?: number
+          project_id?: string
+          result?: string | null
+          status?: string
+          step_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "project_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           annual_revenue: number | null
