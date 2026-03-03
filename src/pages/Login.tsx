@@ -27,19 +27,15 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const success = await login(email, password);
+    const { success, role } = await login(email, password);
 
     if (success) {
       toast({ title: 'Login realizado com sucesso!', description: 'Bem-vindo à área restrita.' });
-      // Small delay to let auth state settle
-      setTimeout(() => {
-        navigate(mode === 'admin' ? '/admin' : '/dashboard');
-      }, 300);
+      navigate(role === 'admin' ? '/admin' : '/dashboard');
     } else {
       toast({ title: 'Credenciais inválidas', description: 'Verifique seu e-mail e senha.', variant: 'destructive' });
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   const handleModeSelect = (m: 'client' | 'admin') => {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Shield, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import ProgressCard from '@/components/dashboard/ProgressCard';
