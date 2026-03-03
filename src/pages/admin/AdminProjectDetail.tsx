@@ -5,7 +5,7 @@ import {
   Trash2, File, Download, CalendarDays, ChevronDown, ChevronRight,
   ListTodo, Pencil, X, Save
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Project, ProjectStep, ProjectFile, ProjectEvent } from '@/types/database';
