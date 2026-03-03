@@ -15,7 +15,7 @@ export interface Project {
   client_id: string;
   title: string;
   description: string | null;
-  status: 'em_andamento' | 'concluido' | 'pausado';
+  status: string;
   current_regime: string | null;
   target_regime: string | null;
   annual_revenue: number | null;
@@ -30,7 +30,7 @@ export interface ProjectStep {
   project_id: string;
   title: string;
   description: string | null;
-  status: 'pendente' | 'em_andamento' | 'concluido';
+  status: string;
   order_index: number;
   due_date: string | null;
   completed_at: string | null;
@@ -43,7 +43,7 @@ export interface ProjectEvent {
   title: string;
   description: string | null;
   event_date: string;
-  event_type: 'entrega' | 'reuniao' | 'prazo';
+  event_type: string;
   created_at: string;
 }
 
