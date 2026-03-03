@@ -43,23 +43,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    let initialized = false;
-
     // Set up listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       if (session?.user) {
+        setIsLoading(true); // keep loading until role is fetched
         const authUser = await buildUser(session.user);
         setUser(authUser);
       } else {
         setUser(null);
       }
-      if (!initialized) {
-        initialized = true;
-        setIsLoading(false);
-      } else {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     });
 
     // Then check existing session
