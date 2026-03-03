@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertTriangle, MessageCircle, ArrowLeft, Shield, UserCog, User } from 'lucide-react';
@@ -17,17 +17,27 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAdmin } = useAuth();
+  const [pendingRedirect, setPendingRedirect] = useState(false);
+  const { login, isAuthenticated, isAdmin, isLoading: authLoading, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const whatsappLink = 'https://wa.me/5500000000000?text=Olá!%20Gostaria%20de%20solicitar%20um%20Estudo%20de%20Viabilidade%20para%20minha%20empresa.';
 
+  // Watch for auth context to settle after login, then redirect
+  useEffect(() => {
+    if (pendingRedirect && !authLoading && isAuthenticated && user) {
+      setPendingRedirect(false);
+      setIsLoading(false);
+      navigate(isAdmin ? '/admin' : '/dashboard', { replace: true });
+    }
+  }, [pendingRedirect, authLoading, isAuthenticated, isAdmin, user, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { success, role } = await login(email, password);
+    const { success } = await login(email, password);
 
     if (!success) {
       toast({ title: 'Credenciais inválidas', description: 'Verifique seu e-mail e senha.', variant: 'destructive' });
@@ -36,8 +46,8 @@ const Login = () => {
     }
 
     toast({ title: 'Login realizado com sucesso!', description: 'Bem-vindo à área restrita.' });
-    // Navigate based on role returned directly from login (before auth state settles)
-    navigate(role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+    // Mark as pending — useEffect will redirect once auth context fully settles
+    setPendingRedirect(true);
   };
 
   const handleModeSelect = (m: 'client' | 'admin') => {
