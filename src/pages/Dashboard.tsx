@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Shield, Menu, X } from 'lucide-react';
+import { LogOut, Shield, Menu, X, ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,8 +12,22 @@ import ConsultantCard from '@/components/dashboard/ConsultantCard';
 import QuickDownloads from '@/components/dashboard/QuickDownloads';
 import ProjectCalendar from '@/components/dashboard/ProjectCalendar';
 import TaxSimulator from '@/components/dashboard/TaxSimulator';
-import { projectData } from '@/data/mockData';
 import type { Phase, Task } from '@/data/mockData';
+
+interface DBProject {
+  id: string;
+  title: string;
+  status: string;
+  client_id: string;
+}
+
+interface DBStep {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  order_index: number;
+}
 
 interface DBTask {
   id: string;
@@ -25,106 +39,145 @@ interface DBTask {
   exclusions: string | null;
   methodology: string | null;
   step_id: string;
+  completion_percentage: number;
 }
 
-interface DBStep {
+interface DBEvent {
+  id: string;
+  project_id: string;
+  title: string;
+  event_date: string;
+  event_type: string;
+}
+
+interface DBFile {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_type: string | null;
+  file_size: number | null;
+  step_id: string | null;
+  file_category: string;
+}
+
+export interface ProjectRealData {
   id: string;
   title: string;
-  description: string | null;
-  status: string;
-  order_index: number;
+  phases: Phase[];
+  projectStatus: string;
+  events: DBEvent[];
+  files: DBFile[];
 }
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [phases, setPhases] = useState<Phase[]>([]);
-  const [projectStatus, setProjectStatus] = useState<string>('Em Andamento');
+  const [projects, setProjects] = useState<DBProject[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [projectData, setProjectData] = useState<ProjectRealData | null>(null);
   const [loadingData, setLoadingData] = useState(true);
 
+  // Load all client projects
   useEffect(() => {
-    const loadClientProject = async () => {
+    const loadProjects = async () => {
       if (!user?.id) return;
 
-      // Get the client record linked to this user
       const { data: clientData } = await supabase
         .from('clients')
         .select('id')
         .eq('user_id', user.id)
         .single();
 
-      if (!clientData) {
-        setLoadingData(false);
-        return;
-      }
+      if (!clientData) { setLoadingData(false); return; }
 
-      // Get client's project (first active one)
       const { data: projectsData } = await supabase
         .from('projects')
-        .select('*')
+        .select('id, title, status, client_id')
         .eq('client_id', clientData.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .order('created_at', { ascending: false });
 
-      if (!projectsData || projectsData.length === 0) {
+      if (projectsData && projectsData.length > 0) {
+        setProjects(projectsData);
+        setSelectedProjectId(projectsData[0].id);
+      } else {
         setLoadingData(false);
-        return;
       }
+    };
+    loadProjects();
+  }, [user?.id]);
 
-      const project = projectsData[0];
+  // Load project detail when selection changes
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    const loadProjectDetail = async () => {
+      setLoadingData(true);
+
+      const [{ data: project }, { data: stepsData }, { data: tasksData }, { data: eventsData }, { data: filesData }] =
+        await Promise.all([
+          supabase.from('projects').select('id, title, status').eq('id', selectedProjectId).single(),
+          supabase.from('project_steps').select('*').eq('project_id', selectedProjectId).order('order_index'),
+          supabase.from('project_tasks').select('*').eq('project_id', selectedProjectId).order('order_index'),
+          supabase.from('project_events').select('*').eq('project_id', selectedProjectId).order('event_date'),
+          supabase.from('project_files').select('*').eq('project_id', selectedProjectId).order('created_at', { ascending: false }),
+        ]);
+
+      const steps: DBStep[] = stepsData || [];
+      const tasks: DBTask[] = (tasksData as DBTask[]) || [];
+
       const statusMap: Record<string, string> = {
         em_andamento: 'Em Andamento',
         concluido: 'Concluído',
         pausado: 'Aguardando Documentação',
       };
-      setProjectStatus(statusMap[project.status] || 'Em Andamento');
 
-      // Get steps and tasks
-      const [{ data: stepsData }, { data: tasksData }] = await Promise.all([
-        supabase.from('project_steps').select('*').eq('project_id', project.id).order('order_index'),
-        supabase.from('project_tasks').select('*').eq('project_id', project.id).order('order_index'),
-      ]);
-
-      const steps: DBStep[] = stepsData || [];
-      const tasks: DBTask[] = tasksData || [];
-
-      // Map to Phase/Task format for ProjectRoadmap
-      const mappedPhases: Phase[] = steps.map((step, idx) => {
+      // Build phases from steps + tasks
+      const phases: Phase[] = steps.map((step, idx) => {
         const stepTasks = tasks.filter(t => t.step_id === step.id);
         const mappedTasks: Task[] = stepTasks.map(t => ({
           id: t.id,
           title: t.title,
           completed: t.status === 'Concluída',
           status: (t.status === 'Concluída' ? 'Concluída' : t.status === 'Em execução' ? 'Em execução' : 'Agendada') as any,
-          dueDate: t.due_date ? new Date(t.due_date).toLocaleDateString('pt-BR') : undefined,
+          dueDate: t.due_date ? new Date(t.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : undefined,
           action: t.action || undefined,
           result: t.result || undefined,
           exclusions: t.exclusions || undefined,
           methodology: t.methodology || undefined,
+          completionPercentage: t.completion_percentage,
         }));
 
-        const allDone = mappedTasks.length > 0 && mappedTasks.every(t => t.completed);
+        // Step report = file with step_id matching and category step_report
+        const stepReportFile = (filesData || []).find(
+          (f: DBFile) => f.step_id === step.id && f.file_category === 'step_report'
+        );
 
         return {
           id: idx + 1,
           title: step.title,
           description: step.description || '',
           tasks: mappedTasks,
-          reportAvailable: allDone,
+          reportAvailable: !!stepReportFile,
+          reportFilePath: stepReportFile?.file_path,
+          reportFileName: stepReportFile?.file_name,
         };
       });
 
-      setPhases(mappedPhases);
+      setProjectData({
+        id: project?.id || selectedProjectId,
+        title: project?.title || '',
+        phases,
+        projectStatus: statusMap[project?.status || ''] || 'Em Andamento',
+        events: (eventsData as DBEvent[]) || [],
+        files: (filesData as DBFile[]) || [],
+      });
       setLoadingData(false);
     };
+    loadProjectDetail();
+  }, [selectedProjectId]);
 
-    loadClientProject();
-  }, [user?.id]);
-
-  // Fallback to mock if no real data
-  const displayPhases = phases.length > 0 ? phases : projectData.phases;
-  const displayStatus = phases.length > 0 ? projectStatus : projectData.projectStatus;
+  const displayPhases = projectData?.phases || [];
+  const displayStatus = projectData?.projectStatus || 'Em Andamento';
 
   const totalTasks = displayPhases.reduce((acc, phase) => acc + phase.tasks.length, 0);
   const completedTasks = displayPhases.reduce(
@@ -137,6 +190,9 @@ const Dashboard = () => {
     await logout();
   };
 
+  // Project files (non-report category)
+  const projectFiles = projectData?.files.filter(f => f.file_category === 'project') || [];
+
   return (
     <div className="min-h-screen bg-muted/50">
       {/* Header */}
@@ -144,16 +200,32 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Logo size="md" />
-            
+
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center gap-6">
+              {/* Project selector */}
+              {projects.length > 1 && (
+                <div className="relative">
+                  <select
+                    value={selectedProjectId || ''}
+                    onChange={e => setSelectedProjectId(e.target.value)}
+                    className="appearance-none pl-3 pr-8 py-1.5 text-sm font-medium bg-muted border border-border rounded-lg text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    {projects.map(p => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                </div>
+              )}
+
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Bem-vindo,</p>
                 <p className="font-semibold text-foreground">{user?.name}!</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                  displayStatus === 'Em Andamento' 
+                  displayStatus === 'Em Andamento'
                     ? 'bg-primary/10 text-primary'
                     : displayStatus === 'Concluído'
                     ? 'bg-green-100 text-green-700'
@@ -181,6 +253,20 @@ const Dashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               className="md:hidden pt-4 pb-2 border-t border-border mt-4"
             >
+              {projects.length > 1 && (
+                <div className="mb-4">
+                  <p className="text-xs text-muted-foreground mb-1">Projeto selecionado:</p>
+                  <select
+                    value={selectedProjectId || ''}
+                    onChange={e => setSelectedProjectId(e.target.value)}
+                    className="w-full pl-3 pr-8 py-2 text-sm font-medium bg-muted border border-border rounded-lg text-foreground cursor-pointer focus:outline-none"
+                  >
+                    {projects.map(p => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Bem-vindo,</p>
@@ -207,24 +293,28 @@ const Dashboard = () => {
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
+        ) : !projectData && projects.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 text-center gap-3">
+            <p className="text-muted-foreground text-lg">Nenhum projeto encontrado.</p>
+            <p className="text-sm text-muted-foreground">Entre em contato com sua consultoria para mais informações.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Column */}
             <div className="lg:col-span-2 space-y-8">
               <ProgressCard progress={progress} completedTasks={completedTasks} totalTasks={totalTasks} />
-              <ProjectRoadmap phases={displayPhases} />
+              <ProjectRoadmap phases={displayPhases} projectId={projectData?.id} />
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
               <ConsultantCard
-                name={projectData.consultant.name}
-                role={projectData.consultant.role}
-                phone={projectData.consultant.phone}
-                photoUrl={projectData.consultant.photoUrl}
+                name="Dr. Ricardo Mendes"
+                role="Consultor Tributário Sênior"
+                phone="5500000000000"
               />
-              <ProjectCalendar />
-              <QuickDownloads documents={projectData.documents} />
+              <ProjectCalendar events={projectData?.events || []} />
+              <QuickDownloads projectId={projectData?.id} files={projectFiles} />
             </div>
           </div>
         )}
@@ -241,7 +331,7 @@ const Dashboard = () => {
           <div className="flex flex-col md:flex-row items-center justify-center gap-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4 text-primary" />
             <span>
-              🔒 Dados protegidos por criptografia de ponta a ponta. 
+              🔒 Dados protegidos por criptografia de ponta a ponta.
               Sua segurança tributária e o sigilo de dados (LGPD) são nossa prioridade máxima.
             </span>
           </div>
