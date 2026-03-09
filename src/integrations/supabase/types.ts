@@ -124,32 +124,38 @@ export type Database = {
       project_files: {
         Row: {
           created_at: string
+          file_category: string
           file_name: string
           file_path: string
           file_size: number | null
           file_type: string | null
           id: string
           project_id: string
+          step_id: string | null
           uploaded_by: string | null
         }
         Insert: {
           created_at?: string
+          file_category?: string
           file_name: string
           file_path: string
           file_size?: number | null
           file_type?: string | null
           id?: string
           project_id: string
+          step_id?: string | null
           uploaded_by?: string | null
         }
         Update: {
           created_at?: string
+          file_category?: string
           file_name?: string
           file_path?: string
           file_size?: number | null
           file_type?: string | null
           id?: string
           project_id?: string
+          step_id?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
@@ -158,6 +164,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_files_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "project_steps"
             referencedColumns: ["id"]
           },
         ]
@@ -212,6 +225,7 @@ export type Database = {
       project_tasks: {
         Row: {
           action: string | null
+          completion_percentage: number
           created_at: string
           due_date: string | null
           exclusions: string | null
@@ -227,6 +241,7 @@ export type Database = {
         }
         Insert: {
           action?: string | null
+          completion_percentage?: number
           created_at?: string
           due_date?: string | null
           exclusions?: string | null
@@ -242,6 +257,7 @@ export type Database = {
         }
         Update: {
           action?: string | null
+          completion_percentage?: number
           created_at?: string
           due_date?: string | null
           exclusions?: string | null
