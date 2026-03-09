@@ -219,6 +219,11 @@ const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
 
                 <AccordionContent className="px-6 pb-6">
                   <div className="space-y-4">
+                    {phase.description && (
+                      <p className="text-sm text-muted-foreground leading-relaxed border-l-2 border-primary/40 pl-3">
+                        {phase.description}
+                      </p>
+                    )}
                     {phase.tasks.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">Nenhuma atividade cadastrada nesta etapa.</p>
                     ) : (
