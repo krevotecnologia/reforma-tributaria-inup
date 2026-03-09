@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Building2, Mail, Phone, Hash, FolderOpen, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Building2, Mail, Phone, Hash, FolderOpen, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Client, Project } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 import NewProjectDialog from '@/components/admin/NewProjectDialog';
 
 const statusConfig = {
@@ -23,10 +25,14 @@ const regimeLabel: Record<string, string> = {
 const AdminClientDetail = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [client, setClient] = useState<Client | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const fetchData = async () => {
     if (!clientId) return;
@@ -40,6 +46,34 @@ const AdminClientDetail = () => {
   };
 
   useEffect(() => { fetchData(); }, [clientId]);
+
+  const handleSetPassword = async () => {
+    if (!client?.user_id) {
+      toast({ title: 'Cliente sem conta ativa', description: 'Este cliente ainda não possui uma conta criada no sistema.', variant: 'destructive' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: 'Senha muito curta', description: 'A senha deve ter no mínimo 6 caracteres.', variant: 'destructive' });
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke('set-client-password', {
+        body: { client_user_id: client.user_id, password: newPassword },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw new Error(res.error.message);
+      const body = res.data as any;
+      if (body?.error) throw new Error(body.error);
+      toast({ title: 'Senha definida com sucesso!', description: 'O cliente já pode acessar com a nova senha.' });
+      setNewPassword('');
+    } catch (err: any) {
+      toast({ title: 'Erro ao definir senha', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -104,6 +138,48 @@ const AdminClientDetail = () => {
               <div className={`mt-1 text-sm font-medium ${client.user_id ? 'text-green-600' : 'text-yellow-600'}`}>
                 {client.user_id ? '✓ Conta Ativa' : '⏳ Convite Pendente'}
               </div>
+            </div>
+
+            {/* Senha de acesso */}
+            <div className="pt-2 border-t border-border space-y-2">
+              <div className="flex items-center gap-1.5">
+                <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  {client.user_id ? 'Alterar senha de acesso' : 'Senha do primeiro acesso'}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Mín. 6 caracteres"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="pr-9 h-8 text-sm"
+                    onKeyDown={(e) => e.key === 'Enter' && handleSetPassword()}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+                <Button
+                  size="sm"
+                  className="h-8 px-3 text-xs"
+                  onClick={handleSetPassword}
+                  disabled={savingPassword || !newPassword}
+                >
+                  {savingPassword ? '...' : 'Salvar'}
+                </Button>
+              </div>
+              {!client.user_id && (
+                <p className="text-xs text-muted-foreground">
+                  A senha será aplicada assim que o cliente criar a conta.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
