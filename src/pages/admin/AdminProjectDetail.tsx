@@ -365,7 +365,7 @@ const AdminProjectDetail = () => {
   const projectFiles = files.filter(f => f.file_category === 'project' || !f.file_category);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full overflow-x-hidden min-w-0">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link to={`/admin/clientes/${clientId}`}><ArrowLeft className="h-4 w-4" /></Link>
