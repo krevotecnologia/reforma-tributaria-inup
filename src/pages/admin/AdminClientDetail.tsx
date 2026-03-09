@@ -25,10 +25,40 @@ const regimeLabel: Record<string, string> = {
 const AdminClientDetail = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [client, setClient] = useState<Client | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  const handleSetPassword = async () => {
+    if (!client?.user_id) {
+      toast({ title: 'Cliente sem conta ativa', description: 'Este cliente ainda não possui uma conta criada no sistema.', variant: 'destructive' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: 'Senha muito curta', description: 'A senha deve ter no mínimo 6 caracteres.', variant: 'destructive' });
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke('set-client-password', {
+        body: { client_user_id: client.user_id, password: newPassword },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw new Error(res.error.message);
+      toast({ title: 'Senha definida com sucesso!', description: 'O cliente já pode acessar com a nova senha.' });
+      setNewPassword('');
+    } catch (err: any) {
+      toast({ title: 'Erro ao definir senha', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   const fetchData = async () => {
     if (!clientId) return;
