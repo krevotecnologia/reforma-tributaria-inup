@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
 
 interface ProjectTask {
   id: string;
@@ -94,12 +93,22 @@ const TaskForm = ({
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
             % de Conclusão: <span className="text-primary font-bold">{data.completion_percentage}%</span>
           </label>
-          <Slider
-            value={[data.completion_percentage]}
-            onValueChange={([v]) => set('completion_percentage', v)}
-            min={0} max={100} step={5}
-            className="mt-1"
-          />
+          <div className="grid grid-cols-6 gap-1 mt-1">
+            {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => set('completion_percentage', v)}
+                className={`h-7 rounded text-xs font-semibold transition-colors ${
+                  data.completion_percentage === v
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                {v}%
+              </button>
+            ))}
+          </div>
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ação</label>
