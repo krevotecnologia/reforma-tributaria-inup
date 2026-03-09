@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, AlertTriangle, MessageCircle, ArrowLeft, Shield, UserCog, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertTriangle, MessageCircle, ArrowLeft, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,10 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/Logo';
 
-type LoginMode = 'choose' | 'client' | 'admin';
-
 const Login = () => {
-  const [mode, setMode] = useState<LoginMode>('choose');
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,12 +36,6 @@ const Login = () => {
     navigate(role === 'admin' ? '/admin' : '/dashboard', { replace: true });
   };
 
-  const handleModeSelect = (m: 'client' | 'admin') => {
-    setMode(m);
-    setEmail(m === 'admin' ? 'renan@inupcontabil.com.br' : '');
-    setPassword('');
-  };
-
   return (
     <div className="min-h-screen flex">
       {/* Left Side */}
@@ -69,127 +60,62 @@ const Login = () => {
 
             <div className="mb-8">
               <h1 className="text-2xl md:text-3xl font-extrabold text-foreground mb-2">
-                Área Restrita
+                Área do Cliente
               </h1>
               <p className="text-muted-foreground">
-                Selecione o tipo de acesso para continuar
+                Acesse seus estudos tributários
               </p>
             </div>
 
-            <AnimatePresence mode="wait">
-              {mode === 'choose' && (
-                <motion.div
-                  key="choose"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="space-y-4"
-                >
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-foreground font-medium">E-mail</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 h-12"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-foreground font-medium">Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10 h-12"
+                    required
+                  />
                   <button
-                    onClick={() => handleModeSelect('client')}
-                    className="w-full flex items-center gap-4 p-5 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all text-left group"
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <User className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-foreground">Acesso Cliente</div>
-                      <div className="text-sm text-muted-foreground">Visualize seus estudos tributários</div>
-                    </div>
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
+                </div>
+              </div>
 
-                  <button
-                    onClick={() => handleModeSelect('admin')}
-                    className="w-full flex items-center gap-4 p-5 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all text-left group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <UserCog className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-foreground">Acesso Administrador</div>
-                      <div className="text-sm text-muted-foreground">Gestão de clientes e projetos</div>
-                    </div>
-                  </button>
-                </motion.div>
-              )}
+              <Button type="submit" className="w-full h-12 btn-primary-inup" disabled={isLoading}>
+                {isLoading ? 'Entrando...' : 'Entrar'}
+              </Button>
+            </form>
 
-              {(mode === 'client' || mode === 'admin') && (
-                <motion.div
-                  key="form"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                >
-                  <button
-                    onClick={() => setMode('choose')}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Voltar
-                  </button>
-
-                  <div className="flex items-center gap-3 mb-6 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                    {mode === 'admin'
-                      ? <UserCog className="h-5 w-5 text-primary" />
-                      : <User className="h-5 w-5 text-primary" />
-                    }
-                    <span className="text-sm font-medium text-primary">
-                      {mode === 'admin' ? 'Login de Administrador' : 'Login de Cliente'}
-                    </span>
-                  </div>
-
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-foreground font-medium">E-mail</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="seu@email.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="pl-10 h-12"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-foreground font-medium">Senha</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          id="password"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10 pr-10 h-12"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <Button type="submit" className="w-full h-12 btn-primary-inup" disabled={isLoading}>
-                      {isLoading ? 'Entrando...' : 'Entrar'}
-                    </Button>
-                  </form>
-
-                  <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Shield className="h-4 w-4" />
-                    <span>Conexão segura e criptografada</span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
+              <Shield className="h-4 w-4" />
+              <span>Conexão segura e criptografada</span>
+            </div>
           </motion.div>
         </div>
       </div>
