@@ -70,8 +70,8 @@ const TaskForm = ({
   const set = (k: keyof typeof data, v: string | number) => setData(p => ({ ...p, [k]: v }));
 
   return (
-    <div className="space-y-3 p-4 rounded-xl border border-border bg-muted/20">
-      <div className="grid sm:grid-cols-2 gap-3">
+    <div className="space-y-3 p-3 sm:p-4 rounded-xl border border-border bg-muted/20 overflow-hidden w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="sm:col-span-2">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Título da Atividade *</label>
           <Input value={data.title} onChange={e => set('title', e.target.value)} placeholder="Ex: Levantamento de NCMs" className="mt-1 h-8 text-sm" />
@@ -79,7 +79,7 @@ const TaskForm = ({
         <div>
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</label>
           <Select value={data.status} onValueChange={v => set('status', v)}>
-            <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="mt-1 h-8 text-sm w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               {taskStatusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
@@ -87,19 +87,19 @@ const TaskForm = ({
         </div>
         <div>
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Data de Entrega</label>
-          <Input type="date" value={data.due_date} onChange={e => set('due_date', e.target.value)} className="mt-1 h-8 text-sm" />
+          <Input type="date" value={data.due_date} onChange={e => set('due_date', e.target.value)} className="mt-1 h-8 text-sm w-full" />
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
             % de Conclusão: <span className="text-primary font-bold">{data.completion_percentage}%</span>
           </label>
-          <div className="grid grid-cols-6 gap-1 mt-1">
+          <div className="flex flex-wrap gap-1 mt-1">
             {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => (
               <button
                 key={v}
                 type="button"
                 onClick={() => set('completion_percentage', v)}
-                className={`h-7 rounded text-xs font-semibold transition-colors ${
+                className={`h-7 px-2 rounded text-xs font-semibold transition-colors flex-shrink-0 ${
                   data.completion_percentage === v
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -112,22 +112,22 @@ const TaskForm = ({
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ação</label>
-          <Textarea value={data.action} onChange={e => set('action', e.target.value)} placeholder="Descreva a ação a ser realizada..." rows={2} className="mt-1 text-sm resize-none" />
+          <Textarea value={data.action} onChange={e => set('action', e.target.value)} placeholder="Descreva a ação a ser realizada..." rows={2} className="mt-1 text-sm resize-none w-full" />
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Resultado Esperado</label>
-          <Textarea value={data.result} onChange={e => set('result', e.target.value)} placeholder="O que será entregue ao final desta atividade..." rows={2} className="mt-1 text-sm resize-none" />
+          <Textarea value={data.result} onChange={e => set('result', e.target.value)} placeholder="O que será entregue ao final desta atividade..." rows={2} className="mt-1 text-sm resize-none w-full" />
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">O que NÃO será feito</label>
-          <Textarea value={data.exclusions} onChange={e => set('exclusions', e.target.value)} placeholder="Limitações e exclusões do escopo..." rows={2} className="mt-1 text-sm resize-none" />
+          <Textarea value={data.exclusions} onChange={e => set('exclusions', e.target.value)} placeholder="Limitações e exclusões do escopo..." rows={2} className="mt-1 text-sm resize-none w-full" />
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Metodologia</label>
-          <Textarea value={data.methodology} onChange={e => set('methodology', e.target.value)} placeholder="Abordagem e metodologia aplicada..." rows={2} className="mt-1 text-sm resize-none" />
+          <Textarea value={data.methodology} onChange={e => set('methodology', e.target.value)} placeholder="Abordagem e metodologia aplicada..." rows={2} className="mt-1 text-sm resize-none w-full" />
         </div>
       </div>
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={saving}><X className="h-3.5 w-3.5 mr-1" />Cancelar</Button>
         <Button type="button" size="sm" className="btn-primary-inup gap-1" onClick={() => onSave(data)} disabled={saving || !data.title.trim()}>
           <Save className="h-3.5 w-3.5" />{saving ? 'Salvando...' : 'Salvar Atividade'}
