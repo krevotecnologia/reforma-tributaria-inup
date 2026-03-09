@@ -189,7 +189,7 @@ const Dashboard = () => {
     ? Math.round(
         displayPhases.reduce((acc, phase) =>
           acc + phase.tasks.reduce((a, task) =>
-            a + (task.completed ? 100 : ((task as any).completionPercentage ?? 0)), 0
+            a + (task.completed ? 100 : (task.completionPercentage ?? 0)), 0
           ), 0
         ) / totalTasks
       )
