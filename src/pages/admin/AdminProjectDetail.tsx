@@ -488,13 +488,17 @@ const AdminProjectDetail = () => {
                             />
                           ) : (
                             <div className="p-3 rounded-lg border border-border bg-card">
-                              <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
                                 <div className="flex-1 min-w-0">
                                   <span className="text-sm font-medium text-foreground">{task.title}</span>
-                                  {task.due_date && <span className="ml-2 text-xs text-muted-foreground">📅 {new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>}
+                                  {task.due_date && (
+                                    <span className="block sm:inline sm:ml-2 text-xs text-muted-foreground mt-0.5 sm:mt-0">
+                                      📅 {new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
-                                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
                                     task.status === 'Concluída' ? 'bg-green-500/10 text-green-600' :
                                     task.status === 'Em execução' ? 'bg-orange-500/10 text-orange-600' :
                                     task.status === 'Atrasada' ? 'bg-red-500/10 text-red-600' :
