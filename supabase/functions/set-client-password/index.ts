@@ -39,7 +39,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(client_user_id, { password });
+    // Set password AND confirm email so the client can log in immediately
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(client_user_id, {
+      password,
+      email_confirm: true,
+    });
     if (error) throw error;
 
     return new Response(JSON.stringify({ success: true }), {
