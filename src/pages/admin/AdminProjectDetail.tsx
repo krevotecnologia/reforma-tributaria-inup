@@ -477,9 +477,10 @@ const AdminProjectDetail = () => {
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                    task.status === 'Concluída' ? 'bg-primary/10 text-primary' :
-                                    task.status === 'Em execução' ? 'bg-blue-500/10 text-blue-600' :
-                                    'bg-muted text-muted-foreground'
+                                    task.status === 'Concluída' ? 'bg-green-500/10 text-green-600' :
+                                    task.status === 'Em execução' ? 'bg-orange-500/10 text-orange-600' :
+                                    task.status === 'Atrasada' ? 'bg-red-500/10 text-red-600' :
+                                    'bg-blue-500/10 text-blue-600'
                                   }`}>{task.status}</span>
                                   <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => setEditingTask(task)}>
                                     <Pencil className="h-3 w-3" />
