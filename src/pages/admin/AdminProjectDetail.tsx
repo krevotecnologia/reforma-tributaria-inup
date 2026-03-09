@@ -401,14 +401,14 @@ const AdminProjectDetail = () => {
       )}
 
       {/* Steps & Tasks */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ListTodo className="h-4 w-4 text-primary" />
             Etapas e Atividades do Projeto
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 overflow-x-hidden">
           {steps.map((step) => {
             const cfg = stepStatusConfig[step.status as keyof typeof stepStatusConfig] || stepStatusConfig.pendente;
             const Icon = cfg.icon;
@@ -418,10 +418,10 @@ const AdminProjectDetail = () => {
             const isUploadingReport = uploadingStepReport === step.id;
 
             return (
-              <div key={step.id} className="border border-border rounded-xl overflow-hidden">
+              <div key={step.id} className="border border-border rounded-xl overflow-hidden w-full min-w-0">
                 {/* Step Header */}
                 <div
-                  className="flex items-start gap-3 p-3 sm:p-4 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="flex items-start gap-2 p-3 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors min-w-0"
                   onClick={() => toggleStep(step.id)}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${cfg.bg}`}>
