@@ -1,46 +1,101 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Users, Building2, ArrowRight } from 'lucide-react';
+import { Plus, Search, Users, CalendarDays, ChevronRight, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Client } from '@/types/database';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import NewClientDialog from '@/components/admin/NewClientDialog';
 
-const regimeLabel: Record<string, string> = {
-  lucro_presumido: 'Lucro Presumido',
-  lucro_real: 'Lucro Real',
-  simples_nacional: 'Simples Nacional',
+interface ClientRow {
+  client: Client;
+  projectCount: number;
+  nextEventDate: string | null;
+  status: 'ativo' | 'encerrado' | 'atrasado';
+}
+
+const statusConfig = {
+  ativo:     { label: 'Ativo',     color: 'bg-blue-500/10 text-blue-600',       icon: Clock },
+  encerrado: { label: 'Encerrado', color: 'bg-green-500/10 text-green-600',     icon: CheckCircle2 },
+  atrasado:  { label: 'Atrasado',  color: 'bg-destructive/10 text-destructive', icon: AlertTriangle },
 };
 
 const AdminClients = () => {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [rows, setRows] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const fetchClients = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    const { data } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
-    setClients(data || []);
+
+    // Busca clientes, projetos, tasks e eventos em paralelo
+    const [{ data: clients }, { data: projects }, { data: tasks }, { data: events }] = await Promise.all([
+      supabase.from('clients').select('*').order('created_at', { ascending: false }),
+      supabase.from('projects').select('id, client_id'),
+      supabase.from('project_tasks').select('id, project_id, status, due_date'),
+      supabase.from('project_events').select('id, project_id, event_date').order('event_date', { ascending: true }),
+    ]);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const built: ClientRow[] = (clients || []).map(client => {
+      const clientProjects = (projects || []).filter(p => p.client_id === client.id);
+      const projectIds = clientProjects.map(p => p.id);
+      const clientTasks = (tasks || []).filter(t => projectIds.includes(t.project_id));
+
+      // Próximo evento futuro
+      const clientEvents = (events || []).filter(e => projectIds.includes(e.project_id));
+      const futureEvent = clientEvents.find(e => new Date(e.event_date + 'T00:00:00') >= today);
+      const nextEventDate = futureEvent?.event_date ?? null;
+
+      // Status
+      let status: ClientRow['status'] = 'encerrado';
+
+      if (clientTasks.length > 0) {
+        const openTasks = clientTasks.filter(t => t.status !== 'Concluída');
+        if (openTasks.length === 0) {
+          status = 'encerrado';
+        } else {
+          const hasOverdue = openTasks.some(t => {
+            if (!t.due_date) return false;
+            return new Date(t.due_date + 'T00:00:00') < today;
+          });
+          status = hasOverdue ? 'atrasado' : 'ativo';
+        }
+      }
+
+      return {
+        client,
+        projectCount: clientProjects.length,
+        nextEventDate,
+        status,
+      };
+    });
+
+    setRows(built);
     setLoading(false);
   };
 
-  useEffect(() => { fetchClients(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const filtered = clients.filter(c =>
-    c.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase()) ||
-    (c.company_name || '').toLowerCase().includes(search.toLowerCase())
+  const filtered = rows.filter(r =>
+    r.client.full_name.toLowerCase().includes(search.toLowerCase()) ||
+    r.client.email.toLowerCase().includes(search.toLowerCase()) ||
+    (r.client.company_name || '').toLowerCase().includes(search.toLowerCase())
   );
+
+  const formatDate = (d: string) =>
+    new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-foreground">Clientes</h1>
-          <p className="text-muted-foreground mt-1">{clients.length} cliente{clients.length !== 1 ? 's' : ''} cadastrado{clients.length !== 1 ? 's' : ''}</p>
+          <p className="text-muted-foreground mt-1">{rows.length} cliente{rows.length !== 1 ? 's' : ''} cadastrado{rows.length !== 1 ? 's' : ''}</p>
         </div>
         <Button onClick={() => setDialogOpen(true)} className="btn-primary-inup gap-2">
           <Plus className="h-4 w-4" />
@@ -81,49 +136,84 @@ const AdminClients = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map(client => (
-            <Link key={client.id} to={`/admin/clientes/${client.id}`}>
-              <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group h-full">
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                      {client.full_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                        {client.full_name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground truncate">{client.email}</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
-                  </div>
+        <Card>
+          <CardContent className="p-0">
+            {/* Header */}
+            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-4 py-3 border-b border-border bg-muted/30 rounded-t-lg">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cliente</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center w-24">Projetos</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center w-40">Próximo Evento</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center w-28">Status</span>
+              <span className="w-6" />
+            </div>
 
-                  {client.company_name && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                      <Building2 className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="truncate">{client.company_name}</span>
-                    </div>
-                  )}
+            {/* Rows */}
+            <div className="divide-y divide-border">
+              {filtered.map(({ client, projectCount, nextEventDate, status }) => {
+                const cfg = statusConfig[status];
+                const StatusIcon = cfg.icon;
 
-                  {client.regime && (
-                    <div className="mt-3">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                        {regimeLabel[client.regime] || client.regime}
+                return (
+                  <Link
+                    key={client.id}
+                    to={`/admin/clientes/${client.id}`}
+                    className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-4 py-4 hover:bg-muted/30 transition-colors group"
+                  >
+                    {/* Nome */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
+                        {client.full_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                          {client.full_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {client.company_name || client.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Projetos */}
+                    <div className="w-24 text-center">
+                      <span className="text-sm font-semibold text-foreground">{projectCount}</span>
+                      <p className="text-xs text-muted-foreground">projeto{projectCount !== 1 ? 's' : ''}</p>
+                    </div>
+
+                    {/* Próximo Evento */}
+                    <div className="w-40 text-center">
+                      {nextEventDate ? (
+                        <div className="flex items-center justify-center gap-1.5 text-sm text-foreground">
+                          <CalendarDays className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                          <span className="text-xs">{formatDate(nextEventDate)}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </div>
+
+                    {/* Status */}
+                    <div className="w-28 flex justify-center">
+                      <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${cfg.color}`}>
+                        <StatusIcon className="h-3 w-3" />
+                        {cfg.label}
                       </span>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+
+                    {/* Arrow */}
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors w-6" />
+                  </Link>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <NewClientDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSuccess={fetchClients}
+        onSuccess={fetchData}
       />
     </div>
   );
