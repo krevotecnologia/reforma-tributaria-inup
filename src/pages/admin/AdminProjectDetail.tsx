@@ -537,11 +537,11 @@ const AdminProjectDetail = () => {
                               </div>
 
                               {(task.action || task.result || task.exclusions || task.methodology) && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                                  {task.action && <div className="pl-2 border-l-2 border-primary/50"><p className="text-xs font-semibold text-muted-foreground uppercase">Ação</p><p className="text-xs text-foreground">{task.action}</p></div>}
-                                  {task.result && <div className="pl-2 border-l-2 border-primary/50"><p className="text-xs font-semibold text-muted-foreground uppercase">Resultado</p><p className="text-xs text-foreground">{task.result}</p></div>}
-                                  {task.exclusions && <div className="pl-2 border-l-2 border-destructive/50"><p className="text-xs font-semibold text-muted-foreground uppercase">Não inclui</p><p className="text-xs text-foreground">{task.exclusions}</p></div>}
-                                  {task.methodology && <div className="pl-2 border-l-2 border-secondary/50"><p className="text-xs font-semibold text-muted-foreground uppercase">Metodologia</p><p className="text-xs text-foreground">{task.methodology}</p></div>}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 overflow-hidden">
+                                  {task.action && <div className="pl-2 border-l-2 border-primary/50 min-w-0"><p className="text-xs font-semibold text-muted-foreground uppercase">Ação</p><p className="text-xs text-foreground break-words">{task.action}</p></div>}
+                                  {task.result && <div className="pl-2 border-l-2 border-primary/50 min-w-0"><p className="text-xs font-semibold text-muted-foreground uppercase">Resultado</p><p className="text-xs text-foreground break-words">{task.result}</p></div>}
+                                  {task.exclusions && <div className="pl-2 border-l-2 border-destructive/50 min-w-0"><p className="text-xs font-semibold text-muted-foreground uppercase">Não inclui</p><p className="text-xs text-foreground break-words">{task.exclusions}</p></div>}
+                                  {task.methodology && <div className="pl-2 border-l-2 border-secondary/50 min-w-0"><p className="text-xs font-semibold text-muted-foreground uppercase">Metodologia</p><p className="text-xs text-foreground break-words">{task.methodology}</p></div>}
                                 </div>
                               )}
                             </div>
