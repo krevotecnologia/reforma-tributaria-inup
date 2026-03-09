@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
 type AppRole = 'admin' | 'client';
 
@@ -28,60 +28,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const buildUser = async (supabaseUser: User): Promise<AuthUser> => {
-    // Fetch role and profile in parallel, using maybeSingle() to avoid errors when no row exists
-    const [roleResult, profileResult] = await Promise.all([
-      supabase.from('user_roles').select('role').eq('user_id', supabaseUser.id).maybeSingle(),
-      supabase.from('profiles').select('full_name').eq('id', supabaseUser.id).maybeSingle(),
+  const fetchUserData = async (userId: string, email: string): Promise<AuthUser> => {
+    const [roleRes, profileRes] = await Promise.all([
+      supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+      supabase.from('profiles').select('full_name').eq('id', userId).maybeSingle(),
     ]);
     return {
-      id: supabaseUser.id,
-      email: supabaseUser.email!,
-      name: profileResult.data?.full_name ?? supabaseUser.email!,
-      role: roleResult.data?.role ?? null,
+      id: userId,
+      email,
+      name: profileRes.data?.full_name ?? email,
+      role: (roleRes.data?.role as AppRole) ?? null,
     };
   };
 
   useEffect(() => {
-    let initialized = false;
-
-    // Set up listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      if (session?.user) {
+    // First, get existing session synchronously before subscribing
+    supabase.auth.getSession().then(async ({ data: { session: existingSession } }) => {
+      if (existingSession?.user) {
         try {
-          const authUser = await buildUser(session.user);
+          const authUser = await fetchUserData(existingSession.user.id, existingSession.user.email!);
           setUser(authUser);
+          setSession(existingSession);
         } catch {
           setUser(null);
+          setSession(null);
         }
       } else {
         setUser(null);
+        setSession(null);
       }
       setIsLoading(false);
-      initialized = true;
     });
 
-    // Fallback: if onAuthStateChange never fires (no session), stop loading
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session && !initialized) {
+    // Subscribe to future auth changes (sign in/out in other tabs, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      // Only handle events after initial load to avoid double-processing
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSession(null);
         setIsLoading(false);
-        initialized = true;
+        return;
+      }
+      if (event === 'TOKEN_REFRESHED' && newSession) {
+        setSession(newSession);
+        return;
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; role: AppRole | null }> => {
+  const login = useCallback(async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; role: AppRole | null }> => {
     const { error, data } = await supabase.auth.signInWithPassword({ email, password });
     if (error || !data.user) return { success: false, role: null };
-    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', data.user.id).single();
-    return { success: true, role: roleData?.role ?? null };
+
+    try {
+      const authUser = await fetchUserData(data.user.id, data.user.email!);
+      setUser(authUser);
+      setSession(data.session);
+      return { success: true, role: authUser.role };
+    } catch {
+      return { success: false, role: null };
+    }
   }, []);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut({ scope: 'local' });
+    setUser(null);
+    setSession(null);
   }, []);
 
   return (
