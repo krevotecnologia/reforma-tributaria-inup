@@ -161,7 +161,7 @@ Gostaria de receber uma análise técnica detalhada em PDF.`;
     return encodeURIComponent(msg);
   };
 
-  const whatsappLink = `https://wa.me/5500000000000?text=${generateWhatsAppMessage()}`;
+  const whatsappLink = `https://wa.me/5532999221342?text=${generateWhatsAppMessage()}`;
 
   return (
     <motion.div

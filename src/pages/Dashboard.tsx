@@ -321,7 +321,7 @@ const Dashboard = () => {
               <ConsultantCard
                 name="Dr. Ricardo Mendes"
                 role="Consultor Tributário Sênior"
-                phone="5500000000000"
+                phone="5532999221342"
               />
               <ProjectCalendar events={projectData?.events || []} />
               <QuickDownloads projectId={projectData?.id} files={projectFiles} />
