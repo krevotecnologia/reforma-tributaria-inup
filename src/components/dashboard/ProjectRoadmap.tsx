@@ -112,23 +112,30 @@ const DetailBlock = ({ label, value, accent }: { label: string; value?: string; 
 
 const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
   const { toast } = useToast();
-  const [downloadingPhase, setDownloadingPhase] = useState<number | null>(null);
+  const [downloadingStep, setDownloadingStep] = useState<number | null>(null);
 
-  const handleDownloadReport = async (phase: Phase & { reportFilePath?: string; reportFileName?: string }) => {
-    if (!phase.reportFilePath) return;
-    setDownloadingPhase(phase.id);
-    const { data, error } = await supabase.storage.from('project-files').download(phase.reportFilePath);
-    if (error) {
-      toast({ title: 'Erro ao baixar relatório', description: error.message, variant: 'destructive' });
-    } else {
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = phase.reportFileName || 'relatorio.pdf';
-      a.click();
-      URL.revokeObjectURL(url);
+  // Download all reports for a phase (multiple files)
+  const handleDownloadAllReports = async (phase: Phase & { reportFilePaths?: string[]; reportFileNames?: string[]; reportFilePath?: string; reportFileName?: string }) => {
+    const paths = phase.reportFilePaths ?? (phase.reportFilePath ? [phase.reportFilePath] : []);
+    const names = phase.reportFileNames ?? (phase.reportFileName ? [phase.reportFileName] : []);
+    if (paths.length === 0) return;
+    setDownloadingStep(phase.id);
+    for (let i = 0; i < paths.length; i++) {
+      const { data, error } = await supabase.storage.from('project-files').download(paths[i]);
+      if (error) {
+        toast({ title: 'Erro ao baixar relatório', description: error.message, variant: 'destructive' });
+      } else {
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = names[i] || `relatorio_${i + 1}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        // Small delay between downloads to avoid browser blocking
+        if (i < paths.length - 1) await new Promise(r => setTimeout(r, 400));
+      }
     }
-    setDownloadingPhase(null);
+    setDownloadingStep(null);
   };
 
   return (
@@ -149,7 +156,14 @@ const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
           {phases.map((phase, index) => {
             const phaseComplete = isPhaseComplete(phase);
             const phaseProgress = phase.tasks.length > 0 ? getPhaseProgress(phase) : 0;
-            const phaseWithReport = phase as Phase & { reportFilePath?: string; reportFileName?: string };
+            const phaseWithReport = phase as Phase & {
+              reportFilePath?: string; reportFileName?: string;
+              reportFilePaths?: string[]; reportFileNames?: string[];
+            };
+
+            // Check if any task is "Em execução"
+            const hasInProgress = phase.tasks.some(t => t.status === 'Em execução');
+            const allScheduled = phase.tasks.length > 0 && phase.tasks.every(t => !t.completed && t.status !== 'Em execução');
 
             return (
               <AccordionItem
@@ -162,25 +176,39 @@ const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                       phaseComplete
                         ? 'bg-primary text-primary-foreground'
+                        : hasInProgress
+                        ? 'bg-orange-500/10 text-orange-500'
                         : 'bg-muted text-muted-foreground'
                     }`}>
                       {phaseComplete ? (
                         <CheckCircle2 className="h-5 w-5" />
+                      ) : hasInProgress ? (
+                        <Clock className="h-5 w-5" />
                       ) : (
                         <span className="font-bold">{index + 1}</span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="font-semibold text-foreground text-base">{phase.title}</h3>
                         {phaseComplete && (
                           <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
                             Concluída
                           </span>
                         )}
+                        {!phaseComplete && hasInProgress && (
+                          <span className="text-xs bg-orange-500/10 text-orange-500 px-2 py-0.5 rounded-full font-medium">
+                            Em Execução
+                          </span>
+                        )}
+                        {!phaseComplete && !hasInProgress && allScheduled && (
+                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">
+                            Agendada
+                          </span>
+                        )}
                       </div>
                       {phase.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-1">{phase.description}</p>
+                        <p className="text-sm text-muted-foreground">{phase.description}</p>
                       )}
                       {phase.tasks.length > 0 && (
                         <div className="flex items-center gap-3 mt-2">
@@ -228,25 +256,46 @@ const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
 
                     {/* Report download */}
                     <div className="pt-1">
-                      <Button
-                        variant={phaseWithReport.reportAvailable ? 'default' : 'outline'}
-                        className={phaseWithReport.reportAvailable ? 'btn-primary-inup' : ''}
-                        disabled={!phaseWithReport.reportAvailable || downloadingPhase === phase.id}
-                        onClick={() => phaseWithReport.reportAvailable && handleDownloadReport(phaseWithReport)}
-                      >
-                        {downloadingPhase === phase.id ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="mr-2 h-4 w-4" />
-                        )}
-                        <FileText className="mr-2 h-4 w-4" />
-                        Baixar Relatório Técnico
-                      </Button>
-                      {!phaseWithReport.reportAvailable && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Disponível após o upload do relatório pelo consultor
-                        </p>
-                      )}
+                      {(() => {
+                        const paths = phaseWithReport.reportFilePaths ?? (phaseWithReport.reportFilePath ? [phaseWithReport.reportFilePath] : []);
+                        const names = phaseWithReport.reportFileNames ?? (phaseWithReport.reportFileName ? [phaseWithReport.reportFileName] : []);
+                        const available = paths.length > 0;
+                        return (
+                          <div className="space-y-2">
+                            {available && names.length > 1 && (
+                              <div className="space-y-1">
+                                {names.map((name, i) => (
+                                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30 text-xs">
+                                    <FileText className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                                    <span className="flex-1 truncate text-foreground">{name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <Button
+                              variant={available ? 'default' : 'outline'}
+                              className={available ? 'btn-primary-inup' : ''}
+                              disabled={!available || downloadingStep === phase.id}
+                              onClick={() => available && handleDownloadAllReports(phaseWithReport)}
+                            >
+                              {downloadingStep === phase.id ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="mr-2 h-4 w-4" />
+                              )}
+                              <FileText className="mr-2 h-4 w-4" />
+                              {available && names.length > 1
+                                ? `Baixar ${names.length} Relatórios`
+                                : 'Baixar Relatório Técnico'}
+                            </Button>
+                            {!available && (
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Disponível após o upload do relatório pelo consultor
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </AccordionContent>

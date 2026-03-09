@@ -93,7 +93,7 @@ const TaskForm = ({
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
             % de Conclusão: <span className="text-primary font-bold">{data.completion_percentage}%</span>
           </label>
-          <div className="flex flex-wrap gap-1 mt-1">
+          <div className="flex flex-wrap gap-1 mt-1 max-w-[50%]">
             {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => (
               <button
                 key={v}
@@ -160,6 +160,12 @@ const AdminProjectDetail = () => {
   const [newStepDesc, setNewStepDesc] = useState('');
   const [newStepDue, setNewStepDue] = useState('');
 
+  // Edit step inline
+  const [editingStepId, setEditingStepId] = useState<string | null>(null);
+  const [editingStepTitle, setEditingStepTitle] = useState('');
+  const [editingStepDesc, setEditingStepDesc] = useState('');
+  const [savingStep, setSavingStep] = useState(false);
+
   // Task forms
   const [addingTaskForStep, setAddingTaskForStep] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<ProjectTask | null>(null);
@@ -169,6 +175,13 @@ const AdminProjectDetail = () => {
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventDate, setNewEventDate] = useState('');
   const [newEventType, setNewEventType] = useState<'entrega' | 'reuniao' | 'prazo'>('entrega');
+
+  // Edit event inline
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editingEventTitle, setEditingEventTitle] = useState('');
+  const [editingEventDate, setEditingEventDate] = useState('');
+  const [editingEventType, setEditingEventType] = useState<'entrega' | 'reuniao' | 'prazo'>('entrega');
+  const [savingEvent, setSavingEvent] = useState(false);
 
   const fetchData = async () => {
     if (!projectId) return;
@@ -210,6 +223,31 @@ const AdminProjectDetail = () => {
       setNewStepTitle(''); setNewStepDesc(''); setNewStepDue('');
       fetchData();
     }
+  };
+
+  const startEditingStep = (step: ProjectStep, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingStepId(step.id);
+    setEditingStepTitle(step.title);
+    setEditingStepDesc(step.description || '');
+  };
+
+  const saveEditStep = async (stepId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!editingStepTitle.trim()) return;
+    setSavingStep(true);
+    const { error } = await supabase.from('project_steps').update({
+      title: editingStepTitle,
+      description: editingStepDesc || null,
+    }).eq('id', stepId);
+    if (error) toast({ title: 'Erro ao salvar etapa', description: error.message, variant: 'destructive' });
+    else { setEditingStepId(null); fetchData(); }
+    setSavingStep(false);
+  };
+
+  const cancelEditStep = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingStepId(null);
   };
 
   const updateStepStatus = async (stepId: string, status: string) => {
@@ -278,6 +316,26 @@ const AdminProjectDetail = () => {
     });
     setNewEventTitle(''); setNewEventDate('');
     fetchData();
+  };
+
+  const startEditingEvent = (ev: ProjectEvent) => {
+    setEditingEventId(ev.id);
+    setEditingEventTitle(ev.title);
+    setEditingEventDate(ev.event_date);
+    setEditingEventType(ev.event_type as 'entrega' | 'reuniao' | 'prazo');
+  };
+
+  const saveEditEvent = async (eventId: string) => {
+    if (!editingEventTitle.trim() || !editingEventDate) return;
+    setSavingEvent(true);
+    const { error } = await supabase.from('project_events').update({
+      title: editingEventTitle,
+      event_date: editingEventDate,
+      event_type: editingEventType,
+    }).eq('id', eventId);
+    if (error) toast({ title: 'Erro ao salvar evento', description: error.message, variant: 'destructive' });
+    else { setEditingEventId(null); fetchData(); }
+    setSavingEvent(false);
   };
 
   // Upload genérico para arquivos do projeto
@@ -416,61 +474,101 @@ const AdminProjectDetail = () => {
             const stepReports = files.filter(f => f.step_id === step.id && f.file_category === 'step_report');
             const isExpanded = expandedSteps.has(step.id);
             const isUploadingReport = uploadingStepReport === step.id;
+            const isEditingThisStep = editingStepId === step.id;
 
             return (
               <div key={step.id} className="border border-border rounded-xl overflow-hidden w-full min-w-0">
                 {/* Step Header */}
                 <div
                   className="flex items-start gap-2 p-3 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors min-w-0"
-                  onClick={() => toggleStep(step.id)}
+                  onClick={() => !isEditingThisStep && toggleStep(step.id)}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${cfg.bg}`}>
                     <Icon className={`h-4 w-4 ${cfg.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-foreground leading-snug">{step.title}</div>
-                    {step.description && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{step.description}</div>}
-                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                      <span className="text-xs text-muted-foreground">{stepTasks.length} atividade{stepTasks.length !== 1 ? 's' : ''}</span>
-                      {stepReports.length > 0 && (
-                        <span className="text-xs text-primary flex items-center gap-1">
-                          <FileText className="h-3 w-3" />{stepReports.length} relatório{stepReports.length !== 1 ? 's' : ''}
-                        </span>
-                      )}
-                      {/* Status badge inline on mobile */}
-                      <span className="sm:hidden" onClick={e => e.stopPropagation()}>
+                    {isEditingThisStep ? (
+                      <div className="space-y-2" onClick={e => e.stopPropagation()}>
+                        <Input
+                          value={editingStepTitle}
+                          onChange={e => setEditingStepTitle(e.target.value)}
+                          className="h-7 text-sm font-semibold"
+                          placeholder="Título da etapa"
+                          autoFocus
+                        />
+                        <Textarea
+                          value={editingStepDesc}
+                          onChange={e => setEditingStepDesc(e.target.value)}
+                          rows={2}
+                          className="text-xs resize-none"
+                          placeholder="Descrição (opcional)"
+                        />
+                        <div className="flex gap-1.5">
+                          <Button size="sm" className="btn-primary-inup h-7 text-xs gap-1" onClick={e => saveEditStep(step.id, e)} disabled={savingStep || !editingStepTitle.trim()}>
+                            <Save className="h-3 w-3" />{savingStep ? 'Salvando...' : 'Salvar'}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={cancelEditStep}>
+                            <X className="h-3 w-3" />Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="font-semibold text-sm text-foreground leading-snug">{step.title}</div>
+                        {step.description && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{step.description}</div>}
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                          <span className="text-xs text-muted-foreground">{stepTasks.length} atividade{stepTasks.length !== 1 ? 's' : ''}</span>
+                          {stepReports.length > 0 && (
+                            <span className="text-xs text-primary flex items-center gap-1">
+                              <FileText className="h-3 w-3" />{stepReports.length} relatório{stepReports.length !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {/* Status badge inline on mobile */}
+                          <span className="sm:hidden" onClick={e => e.stopPropagation()}>
+                            <Select value={step.status} onValueChange={(v) => updateStepStatus(step.id, v)}>
+                              <SelectTrigger className="h-6 w-24 text-xs px-2"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pendente">Pendente</SelectItem>
+                                <SelectItem value="em_andamento">Andamento</SelectItem>
+                                <SelectItem value="concluido">Concluído</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {!isEditingThisStep && (
+                    <>
+                      {/* Desktop controls */}
+                      <div className="hidden sm:flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
                         <Select value={step.status} onValueChange={(v) => updateStepStatus(step.id, v)}>
-                          <SelectTrigger className="h-6 w-24 text-xs px-2"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-7 w-28 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="pendente">Pendente</SelectItem>
                             <SelectItem value="em_andamento">Andamento</SelectItem>
                             <SelectItem value="concluido">Concluído</SelectItem>
                           </SelectContent>
                         </Select>
-                      </span>
-                    </div>
-                  </div>
-                  {/* Desktop controls */}
-                  <div className="hidden sm:flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                    <Select value={step.status} onValueChange={(v) => updateStepStatus(step.id, v)}>
-                      <SelectTrigger className="h-7 w-28 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pendente">Pendente</SelectItem>
-                        <SelectItem value="em_andamento">Andamento</SelectItem>
-                        <SelectItem value="concluido">Concluído</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteStep(step.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  {/* Mobile delete + chevron */}
-                  <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive sm:hidden" onClick={() => deleteStep(step.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={e => startEditingStep(step, e)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteStep(step.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      {/* Mobile: edit + delete + chevron */}
+                      <div className="flex items-center gap-1 flex-shrink-0 sm:hidden" onClick={e => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={e => startEditingStep(step, e)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteStep(step.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                    </>
+                  )}
                 </div>
 
                 {/* Expanded Content */}
@@ -522,8 +620,8 @@ const AdminProjectDetail = () => {
                                 </div>
                               </div>
 
-                              {/* Completion bar */}
-                              <div className="mb-2">
+                              {/* Completion bar — limited to 50% width */}
+                              <div className="mb-2 w-full max-w-[50%]">
                                 <div className="flex items-center justify-between mb-1">
                                   <span className="text-xs text-muted-foreground">Conclusão</span>
                                   <span className="text-xs font-semibold text-primary">{task.completion_percentage ?? 0}%</span>
@@ -557,7 +655,12 @@ const AdminProjectDetail = () => {
                           saving={savingTask}
                         />
                       ) : (
-                        <Button variant="outline" size="sm" className="w-full gap-2 border-dashed h-8 text-xs" onClick={() => setAddingTaskForStep(step.id)}>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="w-full gap-2 h-8 text-xs btn-primary-inup opacity-90"
+                          onClick={() => setAddingTaskForStep(step.id)}
+                        >
                           <Plus className="h-3.5 w-3.5" />
                           Adicionar Atividade
                         </Button>
@@ -651,17 +754,63 @@ const AdminProjectDetail = () => {
           <CardContent className="space-y-3">
             {events.map(ev => {
               const cfg = eventTypeConfig[ev.event_type as keyof typeof eventTypeConfig] || eventTypeConfig.entrega;
+              const isEditingThisEvent = editingEventId === ev.id;
+
               return (
-                <div key={ev.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                  <div className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${cfg.color}`}>{cfg.label}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground truncate">{ev.title}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(ev.event_date + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
-                    onClick={async () => { await supabase.from('project_events').delete().eq('id', ev.id); fetchData(); }}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                <div key={ev.id} className="rounded-lg border border-border overflow-hidden">
+                  {isEditingThisEvent ? (
+                    <div className="p-3 space-y-2 bg-muted/20">
+                      <Input
+                        value={editingEventTitle}
+                        onChange={e => setEditingEventTitle(e.target.value)}
+                        placeholder="Título do evento"
+                        className="h-8 text-sm"
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Input
+                          type="date"
+                          value={editingEventDate}
+                          onChange={e => setEditingEventDate(e.target.value)}
+                          className="h-8 text-sm flex-1"
+                        />
+                        <Select value={editingEventType} onValueChange={v => setEditingEventType(v as any)}>
+                          <SelectTrigger className="h-8 text-sm w-28"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="entrega">Entrega</SelectItem>
+                            <SelectItem value="reuniao">Reunião</SelectItem>
+                            <SelectItem value="prazo">Prazo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex gap-1.5 justify-end">
+                        <Button size="sm" className="btn-primary-inup h-7 text-xs gap-1" onClick={() => saveEditEvent(ev.id)} disabled={savingEvent || !editingEventTitle.trim() || !editingEventDate}>
+                          <Save className="h-3 w-3" />{savingEvent ? 'Salvando...' : 'Salvar'}
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setEditingEventId(null)}>
+                          <X className="h-3 w-3" />Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3">
+                      <div className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${cfg.color}`}>{cfg.label}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-foreground truncate">{ev.title}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(ev.event_date + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => startEditingEvent(ev)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={async () => { await supabase.from('project_events').delete().eq('id', ev.id); fetchData(); }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
