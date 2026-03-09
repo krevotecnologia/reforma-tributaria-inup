@@ -332,10 +332,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Tax Simulator Section */}
-        <div className="mt-12 pt-8 border-t border-border">
-          <TaxSimulator />
-        </div>
       </main>
 
       {/* Security Footer */}
