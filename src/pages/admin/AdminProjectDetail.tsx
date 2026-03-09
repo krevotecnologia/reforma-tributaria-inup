@@ -412,25 +412,37 @@ const AdminProjectDetail = () => {
               <div key={step.id} className="border border-border rounded-xl overflow-hidden">
                 {/* Step Header */}
                 <div
-                  className="flex items-center gap-3 p-4 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="flex items-start gap-3 p-3 sm:p-4 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => toggleStep(step.id)}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${cfg.bg}`}>
                     <Icon className={`h-4 w-4 ${cfg.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-foreground">{step.title}</div>
-                    {step.description && <div className="text-xs text-muted-foreground">{step.description}</div>}
-                    <div className="flex items-center gap-3 mt-0.5">
+                    <div className="font-semibold text-sm text-foreground leading-snug">{step.title}</div>
+                    {step.description && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{step.description}</div>}
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
                       <span className="text-xs text-muted-foreground">{stepTasks.length} atividade{stepTasks.length !== 1 ? 's' : ''}</span>
                       {stepReports.length > 0 && (
                         <span className="text-xs text-primary flex items-center gap-1">
                           <FileText className="h-3 w-3" />{stepReports.length} relatório{stepReports.length !== 1 ? 's' : ''}
                         </span>
                       )}
+                      {/* Status badge inline on mobile */}
+                      <span className="sm:hidden" onClick={e => e.stopPropagation()}>
+                        <Select value={step.status} onValueChange={(v) => updateStepStatus(step.id, v)}>
+                          <SelectTrigger className="h-6 w-24 text-xs px-2"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pendente">Pendente</SelectItem>
+                            <SelectItem value="em_andamento">Andamento</SelectItem>
+                            <SelectItem value="concluido">Concluído</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                  {/* Desktop controls */}
+                  <div className="hidden sm:flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
                     <Select value={step.status} onValueChange={(v) => updateStepStatus(step.id, v)}>
                       <SelectTrigger className="h-7 w-28 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -440,6 +452,12 @@ const AdminProjectDetail = () => {
                       </SelectContent>
                     </Select>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteStep(step.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {/* Mobile delete + chevron */}
+                  <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive sm:hidden" onClick={() => deleteStep(step.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -470,13 +488,17 @@ const AdminProjectDetail = () => {
                             />
                           ) : (
                             <div className="p-3 rounded-lg border border-border bg-card">
-                              <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
                                 <div className="flex-1 min-w-0">
                                   <span className="text-sm font-medium text-foreground">{task.title}</span>
-                                  {task.due_date && <span className="ml-2 text-xs text-muted-foreground">📅 {new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>}
+                                  {task.due_date && (
+                                    <span className="block sm:inline sm:ml-2 text-xs text-muted-foreground mt-0.5 sm:mt-0">
+                                      📅 {new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
-                                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
                                     task.status === 'Concluída' ? 'bg-green-500/10 text-green-600' :
                                     task.status === 'Em execução' ? 'bg-orange-500/10 text-orange-600' :
                                     task.status === 'Atrasada' ? 'bg-red-500/10 text-red-600' :
@@ -596,11 +618,13 @@ const AdminProjectDetail = () => {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nova Etapa</p>
             <Input placeholder="Título da nova etapa" value={newStepTitle} onChange={e => setNewStepTitle(e.target.value)} className="h-8 text-sm" />
             <Textarea placeholder="Descrição da etapa (opcional)" value={newStepDesc} onChange={e => setNewStepDesc(e.target.value)} rows={2} className="text-sm resize-none" />
-            <Input type="date" value={newStepDue} onChange={e => setNewStepDue(e.target.value)} className="h-8 text-sm" placeholder="Data de conclusão (opcional)" />
-            <Button onClick={addStep} size="sm" className="btn-primary-inup gap-1 h-8" disabled={!newStepTitle.trim()}>
-              <Plus className="h-3.5 w-3.5" />
-              Adicionar Etapa
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input type="date" value={newStepDue} onChange={e => setNewStepDue(e.target.value)} className="h-8 text-sm flex-1" placeholder="Data de conclusão (opcional)" />
+              <Button onClick={addStep} size="sm" className="btn-primary-inup gap-1 h-8 sm:w-auto w-full" disabled={!newStepTitle.trim()}>
+                <Plus className="h-3.5 w-3.5" />
+                Adicionar Etapa
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
