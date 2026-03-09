@@ -197,7 +197,7 @@ const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
                           </span>
                         )}
                         {!phaseComplete && hasInProgress && (
-                          <span className="text-xs bg-orange-500/10 text-orange-500 px-2 py-0.5 rounded-full font-medium">
+                          <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full font-medium">
                             Em Execução
                           </span>
                         )}
