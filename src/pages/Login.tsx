@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertTriangle, MessageCircle, ArrowLeft, Shield } from 'lucide-react';
@@ -14,27 +14,55 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const whatsappLink = 'https://wa.me/5500000000000?text=Olá!%20Gostaria%20de%20solicitar%20um%20Estudo%20de%20Viabilidade%20para%20minha%20empresa.';
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate(isAdmin ? '/admin' : '/dashboard', { replace: true });
+    }
+  }, [authLoading, isAuthenticated, isAdmin, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { success, role } = await login(email, password);
+    try {
+      const { success, role } = await login(email, password);
 
-    if (!success) {
-      toast({ title: 'Credenciais inválidas', description: 'Verifique seu e-mail e senha.', variant: 'destructive' });
+      if (!success) {
+        toast({
+          title: 'Credenciais inválidas',
+          description: 'Verifique seu e-mail e senha e tente novamente.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({ title: 'Login realizado com sucesso!', description: 'Bem-vindo à área restrita.' });
+      navigate(role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+    } catch {
+      toast({
+        title: 'Erro ao fazer login',
+        description: 'Tente novamente em instantes.',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    toast({ title: 'Login realizado com sucesso!', description: 'Bem-vindo à área restrita.' });
-    navigate(role === 'admin' ? '/admin' : '/dashboard', { replace: true });
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -51,7 +79,7 @@ const Login = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.4 }}
             className="w-full max-w-md"
           >
             <div className="mb-8">
@@ -67,7 +95,7 @@ const Login = () => {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-foreground font-medium">E-mail</Label>
                 <div className="relative">
@@ -79,7 +107,9 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 h-12"
+                    autoComplete="email"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -94,26 +124,38 @@ const Login = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 h-12"
+                    className="pl-10 pr-12 h-12"
+                    autoComplete="current-password"
                     required
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-12 btn-primary-inup" disabled={isLoading}>
-                {isLoading ? 'Entrando...' : 'Entrar'}
+              <Button
+                type="submit"
+                className="w-full h-12 btn-primary-inup text-base font-semibold"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                    Entrando...
+                  </span>
+                ) : 'Entrar'}
               </Button>
             </form>
 
             <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
-              <Shield className="h-4 w-4" />
+              <Shield className="h-4 w-4 shrink-0" />
               <span>Conexão segura e criptografada</span>
             </div>
           </motion.div>
@@ -122,12 +164,17 @@ const Login = () => {
 
       {/* Right Side - FOMO */}
       <div className="hidden lg:flex lg:w-1/2 bg-foreground text-background relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 right-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
           <div className="absolute bottom-20 left-20 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
         </div>
         <div className="relative z-10 flex flex-col items-center justify-center p-12 text-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="max-w-md">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+            className="max-w-md"
+          >
             <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center mx-auto mb-8">
               <AlertTriangle className="h-8 w-8 text-destructive" />
             </div>
@@ -150,7 +197,10 @@ const Login = () => {
                 <div className="text-sm text-background/60">Risco de tributação dupla</div>
               </div>
             </div>
-            <Button className="w-full h-14 bg-primary text-primary-foreground hover:bg-primary/90 text-lg font-semibold" asChild>
+            <Button
+              className="w-full h-14 bg-primary text-primary-foreground hover:bg-primary/90 text-lg font-semibold"
+              asChild
+            >
               <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="mr-2 h-5 w-5" />
                 Solicitar Estudo de Viabilidade
@@ -164,11 +214,11 @@ const Login = () => {
       {/* Mobile FOMO */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-foreground text-background p-4 border-t border-background/10">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">Ainda não é cliente?</p>
             <p className="text-xs text-background/60">Solicite um estudo gratuito</p>
           </div>
-          <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+          <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0" asChild>
             <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="mr-1 h-4 w-4" />
               WhatsApp
