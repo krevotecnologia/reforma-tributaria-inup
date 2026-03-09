@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, Clock, Download, FileText, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Download, FileText, ChevronDown, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { Phase, Task, TaskStatus, isPhaseComplete, getPhaseProgress } from '@/data/mockData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
