@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, Menu, X, ChevronRight, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 const adminNav = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Clientes', href: '/admin/clientes', icon: Users },
+  { label: 'Simulador Tributário', href: '/admin/simulador', icon: Calculator },
 ];
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
