@@ -618,11 +618,13 @@ const AdminProjectDetail = () => {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nova Etapa</p>
             <Input placeholder="Título da nova etapa" value={newStepTitle} onChange={e => setNewStepTitle(e.target.value)} className="h-8 text-sm" />
             <Textarea placeholder="Descrição da etapa (opcional)" value={newStepDesc} onChange={e => setNewStepDesc(e.target.value)} rows={2} className="text-sm resize-none" />
-            <Input type="date" value={newStepDue} onChange={e => setNewStepDue(e.target.value)} className="h-8 text-sm" placeholder="Data de conclusão (opcional)" />
-            <Button onClick={addStep} size="sm" className="btn-primary-inup gap-1 h-8" disabled={!newStepTitle.trim()}>
-              <Plus className="h-3.5 w-3.5" />
-              Adicionar Etapa
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input type="date" value={newStepDue} onChange={e => setNewStepDue(e.target.value)} className="h-8 text-sm flex-1" placeholder="Data de conclusão (opcional)" />
+              <Button onClick={addStep} size="sm" className="btn-primary-inup gap-1 h-8 sm:w-auto w-full" disabled={!newStepTitle.trim()}>
+                <Plus className="h-3.5 w-3.5" />
+                Adicionar Etapa
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
