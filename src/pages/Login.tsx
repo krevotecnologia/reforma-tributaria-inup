@@ -18,7 +18,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const whatsappLink = 'https://wa.me/5500000000000?text=Olá!%20Gostaria%20de%20solicitar%20um%20Estudo%20de%20Viabilidade%20para%20minha%20empresa.';
+  const whatsappLink = 'https://wa.me/5532999221342?text=Olá!%20Gostaria%20de%20solicitar%20um%20Estudo%20de%20Viabilidade%20para%20minha%20empresa.';
 
   // Redirect if already authenticated
   useEffect(() => {

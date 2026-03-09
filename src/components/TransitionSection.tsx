@@ -128,7 +128,7 @@ const TransitionSection = () => {
             Aproveite os créditos tributários antes que eles deixem de existir.
           </p>
           <a
-            href="https://wa.me/5500000000000?text=Olá!%20Quero%20começar%20meu%20planejamento%20tributário."
+            href="https://wa.me/5532999221342?text=Olá!%20Quero%20começar%20meu%20planejamento%20tributário."
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-xl font-semibold hover:opacity-90 transition-opacity"

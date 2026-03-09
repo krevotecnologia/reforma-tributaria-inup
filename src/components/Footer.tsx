@@ -19,7 +19,7 @@ const Footer = () => {
               navegar com segurança pela maior transição fiscal da história do Brasil.
             </p>
             <a
-              href="https://wa.me/5500000000000"
+              href="https://wa.me/5532999221342"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"

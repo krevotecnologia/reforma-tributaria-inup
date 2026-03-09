@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 
 const HeroSection = () => {
-  const whatsappLink = 'https://wa.me/5500000000000?text=Olá!%20Gostaria%20de%20falar%20com%20um%20especialista%20sobre%20a%20Reforma%20Tributária.';
+  const whatsappLink = 'https://wa.me/5532999221342?text=Olá!%20Gostaria%20de%20falar%20com%20um%20especialista%20sobre%20a%20Reforma%20Tributária.';
 
   return (
     <section className="relative min-h-screen flex items-center hero-gradient pt-20">
