@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, Clock, Download, FileText, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Download, FileText, ChevronDown, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { Phase, Task, TaskStatus, isPhaseComplete, getPhaseProgress } from '@/data/mockData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -16,18 +16,23 @@ interface ProjectRoadmapProps {
 const statusConfig: Record<TaskStatus, { label: string; className: string; icon: React.ReactNode }> = {
   'Concluída': {
     label: 'Concluída',
-    className: 'bg-primary/10 text-primary border-primary/20',
+    className: 'bg-green-500/10 text-green-600 border-green-500/20',
     icon: <CheckCircle2 className="h-3 w-3" />,
   },
   'Em execução': {
     label: 'Em execução',
-    className: 'bg-accent text-accent-foreground border-border',
+    className: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
     icon: <Clock className="h-3 w-3" />,
   },
   'Agendada': {
     label: 'Agendada',
-    className: 'bg-muted text-muted-foreground border-border',
+    className: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
     icon: <Circle className="h-3 w-3" />,
+  },
+  'Atrasada': {
+    label: 'Atrasada',
+    className: 'bg-red-500/10 text-red-600 border-red-500/20',
+    icon: <AlertCircle className="h-3 w-3" />,
   },
 };
 
