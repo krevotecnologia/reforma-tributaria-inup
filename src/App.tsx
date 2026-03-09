@@ -69,6 +69,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/admin/simulador"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminLayout><AdminSimulator /></AdminLayout>
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
