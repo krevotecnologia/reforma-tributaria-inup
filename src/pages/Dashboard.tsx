@@ -11,7 +11,6 @@ import ProjectRoadmap from '@/components/dashboard/ProjectRoadmap';
 import ConsultantCard from '@/components/dashboard/ConsultantCard';
 import QuickDownloads from '@/components/dashboard/QuickDownloads';
 import ProjectCalendar from '@/components/dashboard/ProjectCalendar';
-import TaxSimulator from '@/components/dashboard/TaxSimulator';
 import type { Phase, Task } from '@/data/mockData';
 
 interface DBProject {
@@ -333,10 +332,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Tax Simulator Section */}
-        <div className="mt-12 pt-8 border-t border-border">
-          <TaxSimulator />
-        </div>
       </main>
 
       {/* Security Footer */}

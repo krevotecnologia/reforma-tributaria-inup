@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminClients from "./pages/admin/AdminClients";
 import AdminClientDetail from "./pages/admin/AdminClientDetail";
 import AdminProjectDetail from "./pages/admin/AdminProjectDetail";
+import AdminSimulator from "./pages/admin/AdminSimulator";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireAdmin>
                   <AdminLayout><AdminProjectDetail /></AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/simulador"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminLayout><AdminSimulator /></AdminLayout>
                 </ProtectedRoute>
               }
             />
