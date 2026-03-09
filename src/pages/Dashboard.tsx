@@ -183,7 +183,17 @@ const Dashboard = () => {
   const completedTasks = displayPhases.reduce(
     (acc, phase) => acc + phase.tasks.filter((task) => task.completed).length, 0
   );
-  const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  // Progresso ponderado: usa completion_percentage por tarefa.
+  // Tarefa com status 'Concluída' conta como 100%, independente do valor salvo.
+  const progress = totalTasks > 0
+    ? Math.round(
+        displayPhases.reduce((acc, phase) =>
+          acc + phase.tasks.reduce((a, task) =>
+            a + (task.completed ? 100 : (task.completionPercentage ?? 0)), 0
+          ), 0
+        ) / totalTasks
+      )
+    : 0;
 
   const handleLogout = async () => {
     navigate('/login');

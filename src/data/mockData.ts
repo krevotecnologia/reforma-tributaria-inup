@@ -4,6 +4,7 @@ export interface Task {
   id: string;
   title: string;
   completed: boolean;
+  completionPercentage?: number;
   // Extended fields for table view
   action?: string;
   result?: string;
