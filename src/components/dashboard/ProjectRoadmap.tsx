@@ -177,7 +177,7 @@ const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
                       phaseComplete
                         ? 'bg-primary text-primary-foreground'
                         : hasInProgress
-                        ? 'bg-orange-500/10 text-orange-500'
+                        ? 'bg-orange-500/10 text-orange-600'
                         : 'bg-muted text-muted-foreground'
                     }`}>
                       {phaseComplete ? (
