@@ -29,10 +29,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const buildUser = async (supabaseUser: User): Promise<AuthUser> => {
-    // Fetch role and profile in parallel
+    // Fetch role and profile in parallel, using maybeSingle() to avoid errors when no row exists
     const [roleResult, profileResult] = await Promise.all([
-      supabase.from('user_roles').select('role').eq('user_id', supabaseUser.id).single(),
-      supabase.from('profiles').select('full_name').eq('id', supabaseUser.id).single(),
+      supabase.from('user_roles').select('role').eq('user_id', supabaseUser.id).maybeSingle(),
+      supabase.from('profiles').select('full_name').eq('id', supabaseUser.id).maybeSingle(),
     ]);
     return {
       id: supabaseUser.id,
