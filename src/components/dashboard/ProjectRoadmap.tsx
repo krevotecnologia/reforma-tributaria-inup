@@ -171,8 +171,8 @@ const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
                 value={`phase-${phase.id}`}
                 className="bg-card rounded-xl border-none shadow-md overflow-hidden"
               >
-                <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                  <div className="flex items-start gap-4 text-left w-full pr-4">
+                <AccordionTrigger className="px-6 hover:no-underline [&>svg]:flex-shrink-0 [&>svg]:self-center">
+                  <div className="flex items-center gap-4 text-left w-full pr-4 h-20">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                       phaseComplete
                         ? 'bg-primary text-primary-foreground'
@@ -188,32 +188,29 @@ const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
                         <span className="font-bold">{index + 1}</span>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="font-semibold text-foreground text-base">{phase.title}</h3>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-foreground text-base leading-tight">{phase.title}</h3>
                         {phaseComplete && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
                             Concluída
                           </span>
                         )}
                         {!phaseComplete && hasInProgress && (
-                          <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full font-medium">
+                          <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
                             Em Execução
                           </span>
                         )}
                         {!phaseComplete && !hasInProgress && allScheduled && (
-                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">
+                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
                             Agendada
                           </span>
                         )}
                       </div>
-                      {phase.description && (
-                        <p className="text-sm text-muted-foreground">{phase.description}</p>
-                      )}
                       {phase.tasks.length > 0 && (
-                        <div className="flex items-center gap-3 mt-2">
-                          <Progress value={phaseProgress} className="h-2 flex-1" />
-                          <span className="text-xs text-muted-foreground font-medium">{phaseProgress}%</span>
+                        <div className="flex items-center gap-3">
+                          <Progress value={phaseProgress} className="h-1.5 flex-1" />
+                          <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">{phaseProgress}%</span>
                         </div>
                       )}
                     </div>
