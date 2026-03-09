@@ -147,8 +147,8 @@ const Dashboard = () => {
           completionPercentage: t.completion_percentage,
         }));
 
-        // Step report = file with step_id matching and category step_report
-        const stepReportFile = (filesData || []).find(
+        // All step reports for this step (multiple files supported)
+        const stepReportFiles = (filesData || []).filter(
           (f: DBFile) => f.step_id === step.id && f.file_category === 'step_report'
         );
 
@@ -157,9 +157,13 @@ const Dashboard = () => {
           title: step.title,
           description: step.description || '',
           tasks: mappedTasks,
-          reportAvailable: !!stepReportFile,
-          reportFilePath: stepReportFile?.file_path,
-          reportFileName: stepReportFile?.file_name,
+          reportAvailable: stepReportFiles.length > 0,
+          // Legacy single-file fields (first file)
+          reportFilePath: stepReportFiles[0]?.file_path,
+          reportFileName: stepReportFiles[0]?.file_name,
+          // Multi-file fields
+          reportFilePaths: stepReportFiles.map((f: DBFile) => f.file_path),
+          reportFileNames: stepReportFiles.map((f: DBFile) => f.file_name),
         };
       });
 
