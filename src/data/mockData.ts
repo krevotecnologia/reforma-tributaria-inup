@@ -20,6 +20,8 @@ export interface Phase {
   tasks: Task[];
   reportAvailable: boolean;
   reportUrl?: string;
+  reportFilePath?: string;
+  reportFileName?: string;
 }
 
 export interface ProjectData {
