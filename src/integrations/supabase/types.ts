@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
+          access_count: number
           cnpj: string | null
           company_name: string | null
           created_at: string
@@ -23,12 +24,14 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          last_access_at: string | null
           phone: string | null
           regime: string | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          access_count?: number
           cnpj?: string | null
           company_name?: string | null
           created_at?: string
@@ -36,12 +39,14 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          last_access_at?: string | null
           phone?: string | null
           regime?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          access_count?: number
           cnpj?: string | null
           company_name?: string | null
           created_at?: string
@@ -49,6 +54,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          last_access_at?: string | null
           phone?: string | null
           regime?: string | null
           updated_at?: string
