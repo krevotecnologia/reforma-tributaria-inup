@@ -107,7 +107,7 @@ const Dashboard = () => {
     loadProjects();
   }, [user?.id]);
 
-  // Load project detail when selection changes
+  // Load project detail when selection changes or refresh triggered
   useEffect(() => {
     if (!selectedProjectId) return;
 
