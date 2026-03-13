@@ -179,7 +179,7 @@ const Dashboard = () => {
       setLoadingData(false);
     };
     loadProjectDetail();
-  }, [selectedProjectId]);
+  }, [selectedProjectId, refreshKey]);
 
   // Realtime: re-fetch whenever tasks or steps change for the selected project
   useEffect(() => {
@@ -190,16 +190,12 @@ const Dashboard = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'project_tasks', filter: `project_id=eq.${selectedProjectId}` },
-        () => {
-          setSelectedProjectId(id => id); // trigger re-fetch
-        }
+        () => setRefreshKey(k => k + 1)
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'project_steps', filter: `project_id=eq.${selectedProjectId}` },
-        () => {
-          setSelectedProjectId(id => id);
-        }
+        () => setRefreshKey(k => k + 1)
       )
       .subscribe();
 
