@@ -76,6 +76,7 @@ const Dashboard = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [projectData, setProjectData] = useState<ProjectRealData | null>(null);
   const [loadingData, setLoadingData] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Load all client projects
   useEffect(() => {
