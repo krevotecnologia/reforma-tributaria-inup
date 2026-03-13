@@ -45,9 +45,9 @@ const HeroSection = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed"
           >
-            Entre 2026 e 2030, o Brasil viverá a maior transição tributária da história. 
+            Entre 2026 e 2033, o Brasil viverá o período de transição da reforma tributária. 
             Sem um planejamento estratégico imediato, sua empresa corre o risco de{' '}
-            <strong className="text-foreground">pagar impostos em duplicidade</strong> e perder competitividade.
+            <strong className="text-foreground">pagar mais impostos do que o necessário</strong> e perder a competitividade e atratividade para os seus clientes.
           </motion.p>
 
           {/* CTA Buttons */}
