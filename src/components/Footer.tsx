@@ -66,8 +66,15 @@ const Footer = () => {
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                 <span className="text-background/70">
-                  Sua Cidade, Estado<br />
-                  CEP 00000-000
+                  Avenida Brigadeiro Faria Lima, 1811, Jardim Paulistano<br />
+                  Sala 1119, São Paulo/SP - CEP 01452-001
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <span className="text-background/70">
+                  R. Morais e Castro, 366 - sala 201, 1º andar<br />
+                  Passos, Juiz de Fora/MG - CEP 36025-160
                 </span>
               </li>
             </ul>
