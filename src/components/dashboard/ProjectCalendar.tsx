@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface ProjectEvent {
@@ -40,6 +41,18 @@ const ProjectCalendar = ({ events }: ProjectCalendarProps) => {
   const isMeeting = (date: Date) => meetingDates.some(d => isSameDay(d, date));
   const isDeadline = (date: Date) => deadlineDates.some(d => isSameDay(d, date));
 
+  const getEventTitle = (date: Date) => {
+    const event = events.find(e => isSameDay(new Date(e.event_date + 'T00:00:00'), date));
+    return event?.title || '';
+  };
+
+  const getEventType = (date: Date): 'delivery' | 'meeting' | 'deadline' | null => {
+    if (isMeeting(date)) return 'meeting';
+    if (isDeadline(date)) return 'deadline';
+    if (isDelivery(date)) return 'delivery';
+    return null;
+  };
+
   const monthDeliveries = deliveryDates.filter(
     d => d.getMonth() === month.getMonth() && d.getFullYear() === month.getFullYear()
   ).length;
@@ -63,7 +76,7 @@ const ProjectCalendar = ({ events }: ProjectCalendarProps) => {
           {events.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">Nenhum evento agendado.</p>
           ) : (
-            <>
+            <TooltipProvider delayDuration={100}>
               <Calendar
                 mode="single"
                 month={month}
@@ -99,15 +112,17 @@ const ProjectCalendar = ({ events }: ProjectCalendarProps) => {
                     const meeting = isMeeting(date);
                     const deadline = isDeadline(date);
                     const isToday = isSameDay(date, new Date());
+                    const eventType = getEventType(date);
+                    const eventTitle = getEventTitle(date);
 
-                    return (
+                    const dayContent = (
                       <div
                         className={cn(
                           "relative w-full aspect-square flex items-center justify-center rounded-md text-sm font-normal transition-colors",
                           outside && "opacity-30 text-muted-foreground",
                           !outside && "text-foreground hover:bg-muted cursor-default",
                           isToday && !meeting && !delivery && !deadline && "font-bold ring-1 ring-primary",
-                          meeting && "bg-red-500/90 text-white hover:bg-red-500 font-semibold",
+                          meeting && "bg-destructive/90 text-destructive-foreground hover:bg-destructive font-semibold",
                           deadline && !meeting && "bg-orange-500/90 text-white hover:bg-orange-500 font-semibold",
                           delivery && !meeting && !deadline && "bg-primary/80 text-primary-foreground hover:bg-primary font-semibold"
                         )}
@@ -118,6 +133,30 @@ const ProjectCalendar = ({ events }: ProjectCalendarProps) => {
                         )}
                       </div>
                     );
+
+                    if (eventType && eventTitle && !outside) {
+                      const tooltipLabels: Record<string, string> = {
+                        delivery: 'Entrega de relatório',
+                        meeting: 'Reunião com cliente',
+                        deadline: 'Prazo importante'
+                      };
+
+                      return (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {dayContent}
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="z-50">
+                            <div className="max-w-[200px]">
+                              <p className="font-semibold">{eventTitle}</p>
+                              <p className="text-xs text-muted-foreground">{tooltipLabels[eventType]}</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+
+                    return dayContent;
                   },
                 }}
               />
@@ -133,13 +172,13 @@ const ProjectCalendar = ({ events }: ProjectCalendarProps) => {
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-red-500 inline-block" />
+                    <span className="w-3 h-3 rounded-sm bg-destructive inline-block" />
                     <span className="text-muted-foreground">Reunião com cliente</span>
                   </div>
                   <span className="font-semibold text-foreground">{monthMeetings} este mês</span>
                 </div>
               </div>
-            </>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>
