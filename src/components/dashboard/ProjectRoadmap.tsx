@@ -4,7 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Circle, Clock, Download, FileText, ChevronDown, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
-import { Phase, Task, TaskStatus, isPhaseComplete, getPhaseProgress } from '@/data/mockData';
+import { Phase, Task, TaskStatus, isPhaseComplete } from '@/data/mockData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -155,7 +155,12 @@ const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
         <Accordion type="single" collapsible className="space-y-4">
           {phases.map((phase, index) => {
             const phaseComplete = isPhaseComplete(phase);
-            const phaseProgress = phase.tasks.length > 0 ? getPhaseProgress(phase) : 0;
+            const phaseProgress = phase.tasks.length > 0
+              ? Math.round(
+                  phase.tasks.reduce((acc, t) => acc + (t.completed ? 100 : (t.completionPercentage ?? 0)), 0)
+                  / phase.tasks.length
+                )
+              : 0;
             const phaseWithReport = phase as Phase & {
               reportFilePath?: string; reportFileName?: string;
               reportFilePaths?: string[]; reportFileNames?: string[];
