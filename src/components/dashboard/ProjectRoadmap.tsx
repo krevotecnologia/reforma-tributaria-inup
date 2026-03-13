@@ -155,7 +155,12 @@ const ProjectRoadmap = ({ phases, projectId }: ProjectRoadmapProps) => {
         <Accordion type="single" collapsible className="space-y-4">
           {phases.map((phase, index) => {
             const phaseComplete = isPhaseComplete(phase);
-            const phaseProgress = phase.tasks.length > 0 ? getPhaseProgress(phase) : 0;
+            const phaseProgress = phase.tasks.length > 0
+              ? Math.round(
+                  phase.tasks.reduce((acc, t) => acc + (t.completed ? 100 : (t.completionPercentage ?? 0)), 0)
+                  / phase.tasks.length
+                )
+              : 0;
             const phaseWithReport = phase as Phase & {
               reportFilePath?: string; reportFileName?: string;
               reportFilePaths?: string[]; reportFileNames?: string[];
