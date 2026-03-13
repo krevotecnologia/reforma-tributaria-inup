@@ -76,6 +76,7 @@ const Dashboard = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [projectData, setProjectData] = useState<ProjectRealData | null>(null);
   const [loadingData, setLoadingData] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Load all client projects
   useEffect(() => {
@@ -106,9 +107,10 @@ const Dashboard = () => {
     loadProjects();
   }, [user?.id]);
 
-  // Load project detail when selection changes
+  // Load project detail when selection changes or refresh triggered
   useEffect(() => {
     if (!selectedProjectId) return;
+
     const loadProjectDetail = async () => {
       setLoadingData(true);
 
@@ -177,6 +179,29 @@ const Dashboard = () => {
       setLoadingData(false);
     };
     loadProjectDetail();
+  }, [selectedProjectId, refreshKey]);
+
+  // Realtime: re-fetch whenever tasks or steps change for the selected project
+  useEffect(() => {
+    if (!selectedProjectId) return;
+
+    const channel = supabase
+      .channel(`project-tasks-${selectedProjectId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_tasks', filter: `project_id=eq.${selectedProjectId}` },
+        () => setRefreshKey(k => k + 1)
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_steps', filter: `project_id=eq.${selectedProjectId}` },
+        () => setRefreshKey(k => k + 1)
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedProjectId]);
 
   const displayPhases = projectData?.phases || [];
