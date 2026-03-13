@@ -180,6 +180,33 @@ const Dashboard = () => {
     loadProjectDetail();
   }, [selectedProjectId]);
 
+  // Realtime: re-fetch whenever tasks or steps change for the selected project
+  useEffect(() => {
+    if (!selectedProjectId) return;
+
+    const channel = supabase
+      .channel(`project-tasks-${selectedProjectId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_tasks', filter: `project_id=eq.${selectedProjectId}` },
+        () => {
+          setSelectedProjectId(id => id); // trigger re-fetch
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_steps', filter: `project_id=eq.${selectedProjectId}` },
+        () => {
+          setSelectedProjectId(id => id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedProjectId]);
+
   const displayPhases = projectData?.phases || [];
   const displayStatus = projectData?.projectStatus || 'Em Andamento';
 
