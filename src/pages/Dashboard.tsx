@@ -85,9 +85,20 @@ const Dashboard = () => {
 
       const { data: clientData } = await supabase
         .from('clients')
-        .select('id')
+        .select('id, access_count')
         .eq('user_id', user.id)
         .single();
+
+      // Register access: increment count and update last_access_at
+      if (clientData) {
+        await supabase
+          .from('clients')
+          .update({
+            access_count: (clientData.access_count ?? 0) + 1,
+            last_access_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id);
+      }
 
       if (!clientData) { setLoadingData(false); return; }
 

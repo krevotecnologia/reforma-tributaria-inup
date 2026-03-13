@@ -8,6 +8,8 @@ export interface Client {
   cnpj: string | null;
   regime: string | null;
   created_at: string;
+  access_count?: number;
+  last_access_at?: string | null;
 }
 
 export interface Project {
