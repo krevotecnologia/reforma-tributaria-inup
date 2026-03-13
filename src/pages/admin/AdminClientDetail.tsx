@@ -133,10 +133,40 @@ const AdminClientDetail = () => {
                 <div className="mt-1 text-sm font-medium">{regimeLabel[client.regime] || client.regime}</div>
               </div>
             )}
+            {/* Acesso ao Portal */}
             <div className="pt-2 border-t border-border">
               <span className="text-xs text-muted-foreground">Acesso ao Portal</span>
               <div className={`mt-1 text-sm font-medium ${client.user_id ? 'text-green-600' : 'text-yellow-600'}`}>
                 {client.user_id ? '✓ Conta Ativa' : '⏳ Convite Pendente'}
+              </div>
+            </div>
+
+            {/* Estatísticas de acesso */}
+            <div className="pt-2 border-t border-border space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">Histórico de Acesso</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-muted/50 rounded-md p-2 text-center">
+                  <div className="text-lg font-bold text-foreground">{client.access_count ?? 0}</div>
+                  <div className="text-xs text-muted-foreground">acessos</div>
+                </div>
+                <div className="bg-muted/50 rounded-md p-2 text-center">
+                  {client.last_access_at ? (
+                    <>
+                      <div className="text-xs font-semibold text-foreground leading-tight">
+                        {new Date(client.last_access_at).toLocaleDateString('pt-BR')}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(client.last_access_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-xs text-muted-foreground leading-tight pt-1">Nunca acessou</div>
+                  )}
+                  <div className="text-xs text-muted-foreground">último acesso</div>
+                </div>
               </div>
             </div>
 
