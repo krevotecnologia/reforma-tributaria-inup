@@ -109,6 +109,7 @@ const Dashboard = () => {
   // Load project detail when selection changes
   useEffect(() => {
     if (!selectedProjectId) return;
+
     const loadProjectDetail = async () => {
       setLoadingData(true);
 
